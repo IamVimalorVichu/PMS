@@ -1,7 +1,6 @@
 import { Drive, Company, Job, Requirement } from './types';
 import { Modal, Button, Tabs, Tab, Card, CardBody, Chip, ModalHeader, ModalBody, ModalFooter, CardHeader, CardFooter } from '@heroui/react';
 import { format } from 'date-fns';
-import { useStudentManagement } from './useStudentManagement';
 
 interface DriveCardProps {
   drive: Drive;

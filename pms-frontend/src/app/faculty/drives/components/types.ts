@@ -13,6 +13,8 @@ export interface Drive {
     application_deadline?: string | Date;
     additional_instructions?: string;
     form_link?: string;
+    eligible_students?: string[];
+    published?: boolean;
 }
 
 export interface Company {

@@ -163,8 +163,13 @@ export const useStudentManagement = () => {
     setDriveLoading(true);
     setDriveError(null);
     try {
-      const data = await fetchDrivesAPI();
+      if(!student){
+        await handlefetchStudent(user_id);
+      }
+      if (student){
+      const data = await fetchDrivesAPI(student._id);
       setDrives(data);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load drives';
       setDriveError(errorMessage);
@@ -172,7 +177,7 @@ export const useStudentManagement = () => {
     } finally {
       setDriveLoading(false);
     }
-  }, []);
+  }, [student, user_id, handlefetchStudent]);
 
   // View drive details
   const handleViewDriveDetails = useCallback(async (driveId: string) => {

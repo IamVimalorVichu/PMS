@@ -22,6 +22,8 @@ class Drive(BaseModel):
     form_link: Optional[str] = None
     published: Optional[bool] = False
     eligible_students: Optional[List[str]]=[]
+    created_by: Optional[str] = None
+    
 
 
 class DriveUpdate(BaseModel):

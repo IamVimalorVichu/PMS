@@ -1,5 +1,6 @@
 from fastapi import Body, FastAPI, HTTPException, status, APIRouter, Request
 from pms.models.student import Student, StudentUpdate
+from pms.models.drive import Drive
 from pms.services.student_services import student_mgr
 from pms.utils.form_prefill import prefill_mgr
 from typing import List
@@ -130,3 +131,15 @@ async def get_students_by_ids_route(student_ids: List[str] = Body(..., embed=Fal
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching students by IDs: {str(e)}"
         )
+
+@router.get("/{student_id}/get-drives", response_model=List[Drive])
+async def get_student_drives(student_id: str):
+    try:
+        drives = await student_mgr.get_drives_for_student(student_id)
+        return drives
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching drives for the student {student_id}: {str(e)}"
+        )
+

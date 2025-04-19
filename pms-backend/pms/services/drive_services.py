@@ -152,7 +152,8 @@ class DriveMgr:
                 for drive_job in drive_jobs:
                     job_eligible_students=drive_job["eligible_students"]
                     for job_eligible_student in job_eligible_students:
-                        drive_eligible_students.append(job_eligible_student)
+                        if job_eligible_student not in drive_eligible_students:
+                            drive_eligible_students.append(job_eligible_student)
             response = await self.drive_collection.find_one_and_update(
                 {"_id" : ObjectId(drive_id)},
                 {"$set": {"eligible_students": drive_eligible_students}},  # Use $set for clarity

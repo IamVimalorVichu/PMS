@@ -9,6 +9,7 @@ import AddCompanyModal from "../components/AddCompanyModal";
 import AddJobModal from "../components/AddJobModal";
 import RequirementsModal from "../components/RequirementsModal";
 import PublishDriveModal from "../components/PublishDriveModal";
+import ViewEligibleStudentsModal from "../components/ViewEligibleStudentsModal";
 import { Job } from "../components/types";
 import { useDriveManagement } from "../components/useDriveManagement";
 
@@ -17,6 +18,7 @@ export default function Edit() {
     const [addJobModal, setAddJobModal] = useState(false);
     const [requirementModal, setRequirementModal] = useState(false);
     const [publishDriveModal, setPublishDriveModal] = useState(false);
+    const [viewEligibleStudentsModal, setViewEligibleStudentsModal] = useState(false);
     const [isEditMode, setIsEditMode] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const searchParams = useSearchParams();
@@ -136,6 +138,10 @@ export default function Edit() {
                 // startPublishingDrive();
                 setPublishDriveModal(false);
             }
+        },
+        viewEligibleStudents: {
+            close: () => setViewEligibleStudentsModal(false),
+            open: () => setViewEligibleStudentsModal(true)
         }
     };
 
@@ -346,13 +352,31 @@ export default function Edit() {
                 {isEditMode ? "Edit" : "Preview"}
                 </Switch>
               
-              <Button 
-                color="primary" 
-                variant="solid"
-                onPress={modalHandlers.publish.open}
-              >
-                Publish Drive
-              </Button>
+                {!drive?.published ? (
+                <Button 
+                  color="primary" 
+                  variant="solid"
+                  onPress={modalHandlers.publish.open}
+                >
+                  Publish Drive
+                </Button>
+                ) : drive?.drive_date && new Date(drive.drive_date) > new Date() ? (
+                <Button 
+                  color="primary" 
+                  variant="solid"
+                  onPress={modalHandlers.viewEligibleStudents.open}
+                >
+                  View Eligible Students
+                </Button>
+                ) : (
+                <Button 
+                  color="primary" 
+                  variant="solid"
+                  onPress={() => console.log("Manage phases")}
+                >
+                  Manage Phases
+                </Button>
+                )}
             </div>
           </div>
           
@@ -360,6 +384,11 @@ export default function Edit() {
           <AddJobModal {...addJobModalProps} />
           <RequirementsModal {...requirementModalProps} />
           <PublishDriveModal {...publishDriveModalProps} />
+          <ViewEligibleStudentsModal 
+            isOpen={viewEligibleStudentsModal}
+            onClose={modalHandlers.viewEligibleStudents.close}
+            driveId={drive_id || ""}
+          />
       
           <Tabs 
             aria-label="Drive details"

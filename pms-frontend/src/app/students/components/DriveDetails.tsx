@@ -1,4 +1,4 @@
-import { Drive, Company, Job, Requirement } from './types';
+import { Drive, Company, Job } from './types';
 import { Modal, Button, Tabs, Tab, Card, CardBody, Chip, ModalHeader, ModalBody, ModalFooter, Accordion, AccordionItem } from '@heroui/react';
 import { format } from 'date-fns';
 import { useStudentManagement } from './useStudentManagement';
@@ -14,7 +14,7 @@ export function DriveDetails({
   drive, 
   jobs,
 }: DriveDetailsProps) {
-  const { handleApplyClick, handleApplyToJob } = useStudentManagement();
+  const { handleApplyClick } = useStudentManagement();
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-4">
@@ -122,7 +122,7 @@ export function DriveDetails({
 function JobCard({ job, company, driveId }: { job: Job; company?: Company; driveId: string }) {
   const { handleApplyToJob, handleApplyClick, handleResumeFileChange, resumeFile, loading } = useStudentManagement();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [, setFormSubmitted] = useState(false);
 
   return (
     <Card className="border border-gray-200 shadow-sm">
@@ -249,7 +249,7 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
             color="primary"
             size="lg"
             isDisabled={job.hasApplied || (!resumeFile && !job.form_link)}
-            onPress={() => job.form_link ? handleApplyClick(job.form_link) : handleApplyToJob(job._id, driveId, company?._id!, resumeFile!)}
+            onPress={() => job.form_link ? handleApplyClick(job.form_link) : (company?._id ? handleApplyToJob(job._id, driveId, company._id, resumeFile!) : undefined)}
             isLoading={loading}
           >
             {job.hasApplied ? 'Applied' : job.form_link ? 'Apply via Form' : 'Apply Now'}
@@ -279,7 +279,11 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
             color="primary"
             onPress={async () => {
               try {
-                await handleApplyToJob(job._id, driveId, company?._id!, resumeFile!);
+                if (!company?._id || !resumeFile) {
+                  console.error('Company ID or resume file is missing');
+                  return;
+                }
+                await handleApplyToJob(job._id, driveId, company._id, resumeFile);
                 setIsModalOpen(false);
                 setFormSubmitted(true);
               } catch (error) {

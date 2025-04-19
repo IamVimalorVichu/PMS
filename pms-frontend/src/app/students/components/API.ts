@@ -54,9 +54,9 @@ export const updateStudentAPI = async (id: string, updatedData: Partial<Student>
 }
 
 
-export const fetchDrivesAPI = async () => {
+export const fetchDrivesAPI = async (student_id: string) => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/drive/get`);
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/student/${student_id}/get-drives`);
     if (!response.ok) throw new Error('Failed to fetch drives');
     const drives: Drive[] = await response.json();
 

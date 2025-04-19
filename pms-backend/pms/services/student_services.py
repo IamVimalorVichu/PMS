@@ -181,5 +181,19 @@ class StudentMgr:
         except Exception as e:
             print(f"Database error fetching students by ID: {e}")
             raise Exception(f"Error fetching students by IDs: {str(e)}")
+    async def get_drives_for_student(self, student_id: str):
+        try:
+            from pms.services.drive_services import drive_mgr
+            drives = await drive_mgr.drive_collection.find(
+                {
+                    "eligible_students": {"$in": [student_id]},
+                    "published": True
+                }
+            ).to_list(length=None)
+            for drive in drives:
+                drive["_id"] = str(drive["_id"])
+            return drives
+        except Exception as e:
+            raise Exception(f"Error fetching drives for student: {str(e)}")
 
 student_mgr = StudentMgr()

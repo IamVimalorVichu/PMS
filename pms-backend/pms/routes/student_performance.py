@@ -78,7 +78,7 @@ async def add_student_performance(
             detail=f"Error processing request: {str(e)}"
         )
 
-@router.get("/get/", response_model=StudentPerformance)
+@router.get("/get", response_model=List[StudentPerformance])
 async def get_student_performances():
     try:
         return await student_performance_mgr.get_all_student_performances()   
