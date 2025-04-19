@@ -39,6 +39,10 @@ origins = [
     "https://fictional-yodel-x77wwxg7pjhv4rw-3000.app.github.dev",
     "http://fictional-yodel-x77wwxg7pjhv4rw-3001.app.github.dev",
     "https://fictional-yodel-x77wwxg7pjhv4rw-3001.app.github.dev",
+    "http://bookish-guide-5g5p4jxvg7jwhpv76-3000.app.github.dev",
+    "https://bookish-guide-5g5p4jxvg7jwhpv76-3000.app.github.dev",
+    "http://bookish-guide-5g5p4jxvg7jwhpv76-3001.app.github.dev",
+    "https://bookish-guide-5g5p4jxvg7jwhpv76-3001.app.github.dev",
 ]
 
 db = DatabaseConnection()
