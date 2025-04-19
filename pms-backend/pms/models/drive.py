@@ -22,8 +22,10 @@ class Drive(BaseModel):
     form_link: Optional[str] = None
     published: Optional[bool] = False
     eligible_students: Optional[List[str]]=[]
+    stage_students: Optional[List[List[str]]] = []
     created_by: Optional[str] = None
-    
+
+
 
 
 class DriveUpdate(BaseModel):
@@ -39,5 +41,6 @@ class DriveUpdate(BaseModel):
         additional_instructions: Optional[str] = None
         form_link: Optional[str] = None
         published: Optional[bool] =None
+        stage_students: Optional[List[List[str]]] = None
         eligible_students: Optional[List[str]]= None
 

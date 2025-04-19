@@ -46,6 +46,7 @@ export interface Job {
     additional_instructions?: string;
     form_link?: string;
     eligible_students?: string[];
+    applied_students?: string[];
 }
 
 export interface Requirement {

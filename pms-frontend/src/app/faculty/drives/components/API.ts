@@ -1,8 +1,8 @@
 //API.ts
 import { Drive, Company, Job, Requirement } from "./types";
-import { Performance } from "@/app/students/components/types";
+import { Performance, Student } from "@/app/students/components/types";
 
-export const fetchStudentsAPI = async () => {
+export const fetchStudentsAPI = async (): Promise<Student[]> => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/student/get`, {
         method: "GET",
     });
@@ -173,7 +173,7 @@ export const deleteDriveCompanyByDriveAPI = async (driveId: string) => {
     return await response.json();
 };
 
-export const fetchJobsByDriveAPI = async (driveId: string) => {
+export const fetchJobsByDriveAPI = async (driveId: string): Promise<Job[]> => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/job/get/drive/${driveId}`, {
         method: "GET",
     });
