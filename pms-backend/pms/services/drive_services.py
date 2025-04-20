@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 import logging
+
+from fastapi import HTTPException
 from pms.models.drive import Drive, DriveUpdate
 from pymongo import ReturnDocument
 from typing import List
@@ -171,6 +173,99 @@ class DriveMgr:
             print(f"Error in setting eligible students for drive {drive_id}: {str(e)}")
             # Re-raise the exception to be caught by the route handler
             raise Exception(f"Failed to set eligible students: {str(e)}")
+
+    async def update_drive_stages(self, drive_id: str):
+        """
+        Aggregates stage_students from all jobs under this drive.
+        """
+        try:
+            # Get all jobs for this drive
+            from pms.services.job_services import job_mgr
+            jobs = await job_mgr.get_job_by_drive(drive_id)
+            if not jobs:
+                return
+            
+            # Initialize aggregated stages
+            aggregated_stages: List[List[str]] = []
+            
+            # Find maximum number of stages across all jobs
+            max_stages = max(len(job.get("stage_students", [])) for job in jobs)
+            
+            # Initialize aggregated stages with empty lists
+            aggregated_stages = [[] for _ in range(max_stages)]
+            
+            # Aggregate students for each stage
+            for job in jobs:
+                job_stages = job.get("stage_students", [])
+                for stage_index, stage_students in enumerate(job_stages):
+                    # Add students to aggregated stage, avoiding duplicates
+                    aggregated_stages[stage_index].extend(
+                        student for student in stage_students 
+                        if student not in aggregated_stages[stage_index]
+                    )
+            
+            # Update drive with aggregated stages
+            await self.drive_collection.find_one_and_update(
+                {"_id": ObjectId(drive_id)},
+                {"$set": {"stage_students": aggregated_stages}},
+                return_document=ReturnDocument.AFTER
+            )
+            
+            return aggregated_stages
+            
+        except Exception as e:
+            logging.error(f"Error updating drive stages for drive {drive_id}: {str(e)}")
+            raise Exception(f"Failed to update drive stages: {str(e)}")
+
+    async def update_drive_selected_students(self, drive_id: str):
+        """
+        Aggregates selected students from all jobs under this drive into a single flat list.
+        Updates the drive document with the combined list of selected students.
+        
+        Args:
+            drive_id (str): The ID of the drive to update
+        """
+        try:
+            # Get all jobs for this drive
+            from pms.services.job_services import job_mgr
+            jobs = await job_mgr.get_job_by_drive(drive_id)
+            if not jobs:
+                return
+            
+            # Get all selected students from all jobs and flatten into a single list
+            drive_selected_students = []
+            for job in jobs:
+                job_selected_students = job.get("selected_students", [])
+                for student in job_selected_students:
+                    if student not in drive_selected_students:
+                        drive_selected_students.append(student)
+            
+            # Update drive document with combined selected students
+            response = await self.drive_collection.find_one_and_update(
+                {"_id": ObjectId(drive_id)},
+                {"$set": {"selected_students": drive_selected_students}},
+                return_document=ReturnDocument.AFTER
+            )
+            
+            if not response:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Drive with ID {drive_id} not found"
+                )
+                
+            return {
+                "status": "success",
+                "message": "Drive selected students updated successfully",
+                "data": {
+                    "drive_id": drive_id,
+                    "selected_students": drive_selected_students,
+                    "total_selected": len(drive_selected_students)
+                }
+            }
+            
+        except Exception as e:
+            logging.error(f"Error updating selected students for drive {drive_id}: {str(e)}")
+            raise Exception(f"Failed to update drive selected students: {str(e)}")
 
 drive_mgr = DriveMgr()
 

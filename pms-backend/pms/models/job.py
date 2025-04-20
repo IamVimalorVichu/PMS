@@ -25,6 +25,9 @@ class Job(BaseModel):
     form_link: Optional[str] = None
     applied_students: Optional[List[str]]=[]
     eligible_students: Optional[List[str]]=[]
+    selected_students: Optional[List[str]]=[]
+    stage_students: Optional[List[List[str]]] = []
+
 
 
     
@@ -47,4 +50,6 @@ class JobUpdate(BaseModel):
     form_link: Optional[str] = None
     applied_students: Optional[List[str]]=None
     eligible_students: Optional[List[str]]=None
+    selected_students: Optional[List[str]]=None
+    stage_students: Optional[List[List[str]]] = None
 

@@ -41,6 +41,6 @@ class DriveUpdate(BaseModel):
         additional_instructions: Optional[str] = None
         form_link: Optional[str] = None
         published: Optional[bool] =None
-        stage_students: Optional[List[List[str]]] = None
+        stage_students: Optional[List[List[str]]] = None # each stage is the outer list and list of selected students is the inner list
         eligible_students: Optional[List[str]]= None
 

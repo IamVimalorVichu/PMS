@@ -1,9 +1,10 @@
 import { Drive, Company, Job } from './types';
-import { Modal, Button, Tabs, Tab, Card, CardBody, Chip, ModalHeader, ModalBody, ModalFooter, Accordion, AccordionItem } from '@heroui/react';
+import {  Button, Tabs, Tab, Card, CardBody, Chip, Accordion, AccordionItem } from '@heroui/react';
 import { format } from 'date-fns';
 import { useStudentManagement } from './useStudentManagement';
 import { useState } from 'react';
 import { IoLocationOutline, IoCalendarOutline, IoCashOutline, IoBusinessOutline, IoTimeOutline } from 'react-icons/io5';
+import { InternalApplyModal } from './InternalApplyModal';
 
 interface DriveDetailsProps {
   drive: Drive;
@@ -120,9 +121,32 @@ export function DriveDetails({
 }
 
 function JobCard({ job, company, driveId }: { job: Job; company?: Company; driveId: string }) {
-  const { handleApplyToJob, handleApplyClick, handleResumeFileChange, resumeFile, loading } = useStudentManagement();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [, setFormSubmitted] = useState(false);
+  const { handleApplyToJob, handleApplyClick } = useStudentManagement();
+  const [isInternalModalOpen, setIsInternalModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleApply = () => {
+    if (job.form_link) {
+      handleApplyClick(job.form_link);
+    } else {
+      setIsInternalModalOpen(true);
+    }
+  };
+
+  const handleInternalApply = async (resumeFile: File) => {
+    if (!company?._id) return;
+    
+    setLoading(true);
+    try {
+      await handleApplyToJob(job._id, driveId, company._id, resumeFile);
+      // Handle success - you might want to show a success message
+    } catch (error) {
+      console.error('Error applying:', error);
+      // Handle error - you might want to show an error message
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Card className="border border-gray-200 shadow-sm">
@@ -232,24 +256,11 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
         </Accordion>
 
         <div className="flex items-center gap-4 pt-2">
-          {!job.form_link && (
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => handleResumeFileChange(e.target.files?.[0] || null)}
-              className="flex-1 text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-primary-50 file:text-primary-700
-                hover:file:bg-primary-100"
-            />
-          )}
           <Button
             color="primary"
             size="lg"
-            isDisabled={job.hasApplied || (!resumeFile && !job.form_link)}
-            onPress={() => job.form_link ? handleApplyClick(job.form_link) : (company?._id ? handleApplyToJob(job._id, driveId, company._id, resumeFile!) : undefined)}
+            isDisabled={job.hasApplied}
+            onPress={handleApply}
             isLoading={loading}
           >
             {job.hasApplied ? 'Applied' : job.form_link ? 'Apply via Form' : 'Apply Now'}
@@ -257,45 +268,12 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
         </div>
       </CardBody>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} 
-        isDismissable={false} 
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalHeader>
-          Confirm Form Submission
-        </ModalHeader>
-        <ModalBody>
-          <p>Have you completed and submitted the external application form?</p>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            color="danger"
-            variant="light"
-            onPress={() => setIsModalOpen(false)}
-          >
-            No, Not Yet
-          </Button>
-          <Button
-            color="primary"
-            onPress={async () => {
-              try {
-                if (!company?._id || !resumeFile) {
-                  console.error('Company ID or resume file is missing');
-                  return;
-                }
-                await handleApplyToJob(job._id, driveId, company._id, resumeFile);
-                setIsModalOpen(false);
-                setFormSubmitted(true);
-              } catch (error) {
-                console.error('Error confirming submission:', error);
-              }
-            }}
-            isLoading={loading}
-          >
-            Yes, I Have Submitted
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <InternalApplyModal
+        isOpen={isInternalModalOpen}
+        onClose={() => setIsInternalModalOpen(false)}
+        jobTitle={job.title}
+        onApply={handleInternalApply}
+      />
     </Card>
   );
 }

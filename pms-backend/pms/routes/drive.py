@@ -82,3 +82,23 @@ async def publish_drive(drive_id:str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error Publishing Drive: {str(e)}"
         )
+
+@router.get("/{drive_id}/stages")
+async def get_drive_stages(drive_id: str):
+    """
+    Get aggregated stages for all jobs under this drive.
+    """
+    try:
+        drive = await drive_mgr.get_drive(drive_id)
+        return {
+            "status": "success",
+            "data": {
+                "stage_students": drive.get("stage_students", []),
+                "stage_counts": [len(stage) for stage in drive.get("stage_students", [])]
+            }
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )

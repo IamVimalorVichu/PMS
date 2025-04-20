@@ -390,3 +390,34 @@ export const fetchAllPerformancesAPI = async (): Promise<Performance[]> => {
     }
     return await response.json();
   };
+
+export const updateStagesForJobAPI = async (jobId: string, stageStudents: string[][]) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/job/${jobId}/update-stage-students`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ stage_students: stageStudents }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Server returned with an error: ${response.status}`);
+    }
+    return await response.json();
+};
+
+
+export const confirmFinalSelectedStudentsAPI = async (jobId: string, selectedStudents: string[]) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/job/${jobId}/confirm-selected`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(selectedStudents),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Server returned with an error: ${response.status}`);
+    }
+    return await response.json();
+};

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import logging
 
+from fastapi import HTTPException
 from fastapi.exceptions import ResponseValidationError
 from pydantic import ValidationError
 from pms.models.job import Job, JobUpdate
@@ -323,5 +324,91 @@ class JobMgr:
             print(f"Error in setting eligible students for job {job_id}: {str(e)}")
             # Re-raise the exception to be caught by the route handler
             raise Exception(f"Failed to set eligible students: {str(e)}")
+
+    async def update_stage_students(self, job_id: str, stage_students: List[List[str]]):
+        """
+        Updates the stage_students array for a specific job.
+        
+        Args:
+            job_id (str): The ID of the job to update
+            stage_students (List[List[str]]): List of lists containing student IDs for each stage
+        
+        Returns:
+            dict: The updated job document
+        """
+        try:
+            response = await self.job_collection.find_one_and_update(
+                {"_id": ObjectId(job_id)},
+                {"$set": {"stage_students": stage_students}},
+                return_document=ReturnDocument.AFTER
+            )
+            
+            if not response:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Job with ID {job_id} not found"
+                )
+
+            drive_id = response.get("drive")
+            if drive_id:
+                # Update drive's aggregated stages
+                await drive_mgr.update_drive_stages(drive_id)
+                
+            response["_id"] = str(response["_id"])
+            return {
+                "status": "success",
+                "message": "Stage students updated successfully",
+                "data": response
+            }
+            
+        except Exception as e:
+            logging.error(f"Error updating stage students for job {job_id}: {str(e)}")
+            raise Exception(f"Failed to update stage students: {str(e)}")
+
+    async def confirm_selected_students(self, job_id: str, selected_students: List[str]):
+        """
+        Updates the selected_students array for a job and triggers drive update.
+        
+        Args:
+            job_id (str): The ID of the job to update
+            selected_students (List[str]): List of student IDs who are finally selected
+            
+        Returns:
+            dict: The updated job document with confirmation status
+        """
+        try:
+            # Update job's selected students
+            response = await self.job_collection.find_one_and_update(
+                {"_id": ObjectId(job_id)},
+                {
+                    "$set": {
+                        "selected_students": selected_students,
+                    }
+                },
+                return_document=ReturnDocument.AFTER
+            )
+            
+            if not response:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Job with ID {job_id} not found"
+                )
+
+            # Get drive_id from the job
+            drive_id = response.get("drive")
+            if drive_id:
+                # Update drive's selected students
+                await drive_mgr.update_drive_selected_students(drive_id)
+                
+            response["_id"] = str(response["_id"])
+            return {
+                "status": "success",
+                "message": "Selected students confirmed successfully",
+                "data": response
+            }
+            
+        except Exception as e:
+            logging.error(f"Error confirming selected students for job {job_id}: {str(e)}")
+            raise Exception(f"Failed to confirm selected students: {str(e)}")
 
 job_mgr = JobMgr()

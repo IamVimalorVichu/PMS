@@ -15,6 +15,7 @@ export interface Drive {
     form_link?: string;
     eligible_students?: string[];
     published?: boolean;
+    stage_students?: string[][];
 }
 
 export interface Company {
@@ -37,7 +38,7 @@ export interface Job {
     desc?: string;
     loc?: string;
     requirement?: string;
-    experience: number;
+    experience?: number;
     salary?: number;
     join_date: string | Date;
     last_date: string | Date;
@@ -47,6 +48,8 @@ export interface Job {
     form_link?: string;
     eligible_students?: string[];
     applied_students?: string[];
+    selected_students?: string[];
+    stage_students?: string[][];
 }
 
 export interface Requirement {

@@ -2,7 +2,7 @@ from time import strftime
 from fastapi import FastAPI, HTTPException, status, APIRouter
 from pms.models.job import Job, JobUpdate
 from pymongo import ReturnDocument
-from typing import List
+from typing import List, Dict
 from pms.services.job_services import job_mgr
 
 router = APIRouter()
@@ -167,4 +167,45 @@ async def set_eligible_students_for_job(job_id: str, studentList: List[str]):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while setting eligible students: {str(e)}"
+        )
+
+@router.patch("/{job_id}/update-stage-students")
+async def update_stage_students(job_id: str, stage_students: Dict[str, List[List[str]]]):
+    """
+    Updates the stage_students array for a specific job.
+    The stage_students parameter should be a list of lists, where each inner list
+    represents students in a particular stage.
+    """
+    try:
+        updated_job = await job_mgr.update_stage_students(job_id, stage_students["stage_students"])
+        return updated_job
+    
+    except HTTPException as http_exc:
+        raise http_exc
+    
+    except Exception as e:
+        print(f"Error updating stage students for job {job_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while updating stage students: {str(e)}"
+        )
+
+@router.patch("/{job_id}/confirm-selected")
+async def confirm_selected_students(job_id: str, selected_students: List[str]):
+    """
+    Confirms the final list of selected students for a job and updates the drive's
+    selected students list.
+    """
+    try:
+        updated_job = await job_mgr.confirm_selected_students(job_id, selected_students)
+        return updated_job
+    
+    except HTTPException as http_exc:
+        raise http_exc
+    
+    except Exception as e:
+        print(f"Error confirming selected students for job {job_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while confirming selected students: {str(e)}"
         )
