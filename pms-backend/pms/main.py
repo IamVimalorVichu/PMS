@@ -34,6 +34,14 @@ from pms.routes.drive_form import router as drive_form_router
 from pms.routes.application_form import router as application_form_router
 from pms.services.drive_form_services import drive_form_mgr
 from pms.services.application_form_services import application_form_mgr
+from pms.services.post_services import post_mgr
+from pms.services.comment_services import comment_mgr
+from pms.services.report_services import report_mgr
+from pms.services.direct_message_services import dm_mgr
+from pms.routes.post_routes import router as post_router
+from pms.routes.report_routes import router as report_router
+from pms.routes.admin_community_routes import router as admin_community_router
+from pms.routes.direct_message_routes import router as dm_router
 
 
 origins = [
@@ -67,6 +75,10 @@ async def lifespan(app: FastAPI):
     await alumni_mgr.initialize()
     await drive_form_mgr.initialize()
     await application_form_mgr.initialize()
+    await post_mgr.initialize()
+    await comment_mgr.initialize()
+    await report_mgr.initialize()
+    await dm_mgr.initialize()
     yield
     # Shutdown
     await db.close()
@@ -102,6 +114,10 @@ app.include_router(resumeRouter, tags=["Resume"], prefix="/resume")
 app.include_router(alumniRouter, tags=["Alumni"], prefix="/alumni")
 app.include_router(drive_form_router, prefix="/drive-forms", tags=["Drive Forms"])
 app.include_router(application_form_router,prefix="/applications-form",tags=["Application Forms"])
+app.include_router(post_router, prefix="/posts", tags=["Posts"])
+app.include_router(report_router, prefix="/reports", tags=["Reports"])
+app.include_router(admin_community_router, prefix="/admin/community", tags=["Admin Community Management"])
+app.include_router(dm_router, prefix="/direct-messages", tags=["Direct Messages"])
 app.mount("/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
 
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "app/globals.css";
 import AlumniSidebar from "../components/side/AlumniSideBar";
 import NavBar from "../components/nav/NavBar";
@@ -27,7 +26,7 @@ export default function RootLayout({
           {/* Main Content (Margin to Avoid Overlap) */}
           <div className="flex-1 ml-48 z-20 mt-20">
             {children}
-            <ToastContainer/>
+            <ToastContainer position="bottom-left" autoClose={3000} />
           </div>
         </main>
       </body>

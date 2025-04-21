@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "app/globals.css";
-import NavBar from "../components/nav/NavBar";
-import FacultySidebar from "../components/side/FacultySideBar";
+import NavBar from "@/components/nav/NavBar";
 import { ToastContainer } from "react-toastify";
+import AlumniSidebar from "@/app/components/side/AlumniSideBar";
 
 export const metadata: Metadata = {
   title: "PMS",
@@ -22,7 +22,7 @@ export default function RootLayout({
 
         <main className="flex min-h-screen "> {/* pt-16 to avoid overlap with NavBar */}
           {/* Sidebar (Fixed Width & Non-Overlapping) */}
-          <FacultySidebar />
+          <AlumniSidebar />
           {/* Main Content (Margin to Avoid Overlap) */}
           <div className="flex-1 ml-48 z-20 mt-20">
             {children}

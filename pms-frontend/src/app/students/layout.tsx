@@ -36,7 +36,7 @@ export default function RootLayout({
           {/* Main Content (Margin to Avoid Overlap) */}
           <div className="flex-1 ml-48 mt-20 z-20">
             {children}
-            <ToastContainer />
+            <ToastContainer position="bottom-left" autoClose={3000} />
           </div>
         </main>
       </body>

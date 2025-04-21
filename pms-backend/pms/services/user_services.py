@@ -46,6 +46,7 @@ class UserMgr:
 
     async def login_user(self, user: UserLogin):
         try:
+            print('reached in user_services')
             user_data = await self.users_collection.find_one({"email": user.email})
             if user_data is None:
                 raise Exception("User not found")
@@ -108,5 +109,14 @@ class UserMgr:
             raise Exception("User not found")
         except Exception as e:
             raise Exception(f"Error deleting user: {str(e)}")
+    
+    # async def logout_user(self, user_id: str):
+    #     try:
+    #         # No need to update any DB state for logout since we use JWTs
+    #         # Just return a success response
+    #         return {
+    #             "status": "success",
+    #             "message": "User logged out successfully"
+    #       }
 
 user_mgr = UserMgr()

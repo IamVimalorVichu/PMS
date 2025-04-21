@@ -1,17 +1,23 @@
+'use client';
 import {
   Navbar, 
   NavbarBrand, 
   NavbarContent, 
-  NavbarItem, 
-  NavbarMenuToggle,
-  NavbarMenu,
-  NavbarMenuItem, Link, Button
+  NavbarItem, Link, Button
 } from "@heroui/react";
 import React from 'react';
-import Image from 'next/image';
-import { FaHandshake } from "react-icons/fa6"; 
+import { FaHandshake } from "react-icons/fa6";
+import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
 
 const NavBar = () => {
+    const router = useRouter();
+
+    const handleLogout = () => {
+        Cookies.remove('access_token', { path: '/' }); // Remove the cookie
+        router.push('/'); // Redirect to home/login page
+    };
+
     return (
         <Navbar maxWidth="full" className="fixed shadow-lg bg-secondary shadow-lg">
       <NavbarBrand className="gap-2">
@@ -19,10 +25,14 @@ const NavBar = () => {
         <p className="font-bold text-white text-3xl text-shadow-md gap-2">PMS</p>
       </NavbarBrand>
       <NavbarContent className="flex gap-4" justify="center">
-        <NavbarItem >
-          <Link className="text-white" href="/">
-            Home
-          </Link>
+        <NavbarItem>
+          <Button 
+            className="text-white" 
+            variant="light"
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
         </NavbarItem>
         <NavbarItem >
           <Link className="text-white" href="/about">
