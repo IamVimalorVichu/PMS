@@ -88,3 +88,78 @@ export interface ActionStates {
     updatingRequirement: boolean;
     deletingRequirement: boolean;
 }
+
+// models/drive_form.ts or types/drive_form.ts
+
+// Interface corresponding to the DriveForm Pydantic model
+export interface DriveForm {
+    id?: string | null; // Corresponds to _id from MongoDB
+    drive_id: string;
+
+    // Standard Student Fields (Flags)
+    include_first_name?: boolean | null;
+    include_middle_name?: boolean | null;
+    include_last_name?: boolean | null;
+    include_address?: boolean | null;
+    include_city?: boolean | null;
+    include_state?: boolean | null;
+    include_district?: boolean | null;
+    include_adm_no?: boolean | null;
+    include_reg_no?: boolean | null;
+    include_gender?: boolean | null;
+    include_email?: boolean | null;
+    include_alt_email?: boolean | null;
+    include_ph_no?: boolean | null;
+    include_alt_ph?: boolean | null;
+    include_program?: boolean | null;
+    include_student_status?: boolean | null; // Matches 'include_status' alias
+
+    // Standard Performance Fields (Flags)
+    include_tenth_cgpa?: boolean | null;
+    include_twelfth_cgpa?: boolean | null;
+    include_degree_cgpa?: boolean | null;
+    include_mca_cgpa?: boolean | null;
+    include_skills?: boolean | null;
+    include_current_status?: boolean | null; // Performance current_status
+    include_mca_percentage?: boolean | null;
+    include_linkedin_url?: boolean | null;
+
+    // Additional Custom Fields
+    additional_field_labels: string[];
+
+    // Metadata
+    created_at?: string | null; // Dates often come as ISO strings
+    updated_at?: string | null;
+}
+
+// Interface corresponding to the DriveFormUpdate Pydantic model
+export interface DriveFormUpdate {
+    // All fields are optional for PATCH updates
+    include_first_name?: boolean | null;
+    include_middle_name?: boolean | null;
+    include_last_name?: boolean | null;
+    include_address?: boolean | null;
+    include_city?: boolean | null;
+    include_state?: boolean | null;
+    include_district?: boolean | null;
+    include_adm_no?: boolean | null;
+    include_reg_no?: boolean | null;
+    include_gender?: boolean | null;
+    include_email?: boolean | null;
+    include_alt_email?: boolean | null;
+    include_ph_no?: boolean | null;
+    include_alt_ph?: boolean | null;
+    include_program?: boolean | null;
+    include_student_status?: boolean | null;
+
+    include_tenth_cgpa?: boolean | null;
+    include_twelfth_cgpa?: boolean | null;
+    include_degree_cgpa?: boolean | null;
+    include_mca_cgpa?: boolean | null;
+    include_skills?: boolean | null;
+    include_current_status?: boolean | null;
+    include_mca_percentage?: boolean | null;
+    include_linkedin_url?: boolean | null;
+
+    additional_field_labels?: string[] | null;
+}

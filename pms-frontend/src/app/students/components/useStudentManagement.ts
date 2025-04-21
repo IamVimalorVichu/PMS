@@ -141,6 +141,7 @@ export const useStudentManagement = () => {
     console.log('Fetching student for userid:', userid);
     try {
       setLoading(true);
+      console.log(userid);
       const response = await fetchStudentByIdAPI(userid);
       if (!response) {
         throw new Error('No student data received');
@@ -236,37 +237,58 @@ export const useStudentManagement = () => {
   }, []);
 
   // Apply to job
-  const handleApplyToJob = useCallback(async (jobId: string, driveId: string, companyId: string, resumeFile: File) => {
+  const handleApplyToJob = useCallback(async (
+    jobId: string, 
+    driveId: string, 
+    companyId: string, 
+    resumeFile: File | null,
+    savedResumeId?: string
+  ) => {
     console.log('handleApplyToJob called with:', {
       jobId,
       driveId,
       companyId,
-      resumeFileName: resumeFile?.name
+      resumeFileName: resumeFile?.name,
+      savedResumeId
     });
-
+  
     if (!student || !student._id) {
       console.error('No student ID found');
       setError('No student ID found');
       return;
     }
-
-    if (!resumeFile) {
-      console.error('No resume file selected');
-      setError('Please select a resume file');
+  
+    if (!resumeFile && !savedResumeId) {
+      console.error('No resume selected');
+      setError('Please select or upload a resume');
       return;
     }
-
+  
     try {
       setDriveLoading(true);
       console.log('Calling applyToJobAPI...');
-      await applyToJobAPI(
-        jobId, 
-        student._id,
-        driveId,
-        companyId,
-        resumeFile
-      );
       
+      if (savedResumeId) {
+        // Apply with saved resume
+        await applyToJobAPI(
+          jobId,
+          student._id,
+          driveId,
+          companyId,
+          null, // no file
+          savedResumeId // pass the saved resume ID
+        );
+      } else if (resumeFile) {
+        // Apply with uploaded file
+        await applyToJobAPI(
+          jobId,
+          student._id,
+          driveId,
+          companyId,
+          resumeFile
+        );
+      }
+  
       console.log('Application successful, resetting state...');
       setResumeFile(null);
       

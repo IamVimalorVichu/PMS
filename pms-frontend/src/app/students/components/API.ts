@@ -1,8 +1,18 @@
-import { Student, Company, Job, Requirement, Drive, Resume } from "./types";
+import { Student, Company, Job, Requirement, Drive, Resume, ApplicationForm, JobApplication } from "./types";
 import { PrefillData } from '../components/types';
 
 export const fetchStudentByIdAPI = async (userId: string) => {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/student/get-user/${userId}`, {
+        method: "GET",
+    });
+    if (!response.ok) {
+        throw new Error(`Server returned with an error: ${response.status}`);
+    }
+    return await response.json();
+}
+
+export const fetchStudentByStudentIdAPI = async (studentId: string) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/student/get/${studentId}`, {
         method: "GET",
     });
     if (!response.ok) {
@@ -168,56 +178,67 @@ export const fetchDriveDetailsAPI = async (driveId: string) => {
 // };
 
 export const applyToJobAPI = async (
-  jobId: string, 
+  jobId: string,
   studentId: string,
   driveId: string,
   companyId: string,
-  resumeFile: File
+  resumeFile: File | null,
+  savedResumeId?: string
 ) => {
   try {
-    // First upload the resume
-    const formData = new FormData();
-    formData.append('file', resumeFile);
-    
-    const uploadResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/uploads/student/${studentId}/job_applications`, 
-      {
-        method: 'POST',
-        body: formData
-      }
-    );
+    // Create payload object first
+    const payload: Partial<JobApplication> = {
+      job_id: jobId,
+      student_id: studentId,
+      drive_id: driveId,
+      company_id: companyId
+    };
 
-    if (!uploadResponse.ok) {
-      throw new Error('Failed to upload resume');
+    // Add saved_resume if present
+    if (savedResumeId) {
+      payload.saved_resume = savedResumeId;
     }
 
-    const { filepath } = await uploadResponse.json();
+    // If we have a resume file, use FormData
+    if (resumeFile) {
+      const formData = new FormData();
+      // Add all payload fields to FormData
+      Object.entries(payload).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      // Add the file last
+      formData.append('resume', resumeFile);
 
-    // Then create the job application
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/job-applications/add`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        student_id: studentId,
-        job_id: jobId,
-        drive_id: driveId,
-        company_id: companyId,
-        status: 'Applied',
-        resume: filepath,
-        applied_date: new Date()
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to apply to job');
+      console.log("Sending FormData payload with file");
+      
+      return await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/job-applications/add`,
+        {
+          method: 'POST',
+          body: formData, // Don't set Content-Type header - browser will set it with boundary
+        }
+      );
+    } else {
+      // No file, send JSON payload
+      console.log("Sending JSON payload:", payload);
+      
+      return await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/job-applications/add`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
     }
 
-    return response.json();
   } catch (error) {
-    console.error('Error in job application:', error);
-    throw error;
+    console.error('API Error:', error);
+    throw error instanceof Error 
+      ? error 
+      : new Error('Failed to apply to job');
   }
 };
 
@@ -401,4 +422,70 @@ export const prefillGoogleFormAPI = async (formUrl: string, studentData: Prefill
   }
 };
 
+export const fetchStudentApplicationByDriveAndJobAPI = async (
+  studentId: string,
+  driveId: string,
+  jobId: string
+): Promise<ApplicationForm | null> => {
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/applications-form/student/${studentId}/drive/${driveId}/job/${jobId}`
+    );
 
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch application');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('API Error:', error);
+    throw error;
+  }
+};
+
+export const submitApplicationFormAPI = async (
+    applicationData: ApplicationForm,
+    studentId: string
+): Promise<{ data: ApplicationForm }> => {
+    try {
+        const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/applications-form/submit/${studentId}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(applicationData),
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to submit application');
+        }
+
+        const data = await response.json();
+        return { data };
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error instanceof Error 
+            ? error 
+            : new Error('Failed to submit application form');
+    }
+};
+
+export const getJobApplicationAPI = async (jobId: string, studentId: string) => {
+    const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/job-applications/job-student/${jobId}/${studentId}`
+    );
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch job application');
+    }
+
+    return await response.json();
+}

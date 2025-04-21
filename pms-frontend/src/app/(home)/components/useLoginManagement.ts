@@ -31,7 +31,7 @@ const USER_STATUS_INACTIVE = "Inactive";
 const ROLE_REDIRECT_MAP: Record<UserRole, string | null> = {
   faculty: "/faculty/profile",
   student: "/students/profile",
-  admin: "/admin/profile",
+  admin: "/faculty/profile",
   alumni: "/alumni/profile",
 };
 

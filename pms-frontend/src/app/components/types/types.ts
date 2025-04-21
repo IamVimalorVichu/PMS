@@ -7,7 +7,7 @@ export interface Requirement {
     degree_cgpa?: number;
     mca_cgpa?: number[];
     contract?: number;
-    additional_criteria?: d;
+    additional_criteria?: string;
     skills_required?: string[];
     preferred_qualifications?: string[];
     required_certifications?: string[];

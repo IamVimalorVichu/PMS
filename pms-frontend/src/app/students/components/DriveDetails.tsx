@@ -5,6 +5,7 @@ import { useStudentManagement } from './useStudentManagement';
 import { useState } from 'react';
 import { IoLocationOutline, IoCalendarOutline, IoCashOutline, IoBusinessOutline, IoTimeOutline } from 'react-icons/io5';
 import { InternalApplyModal } from './InternalApplyModal';
+import { ApplicationAndResumeModal } from './ApplicationAndResumeModal';
 
 interface DriveDetailsProps {
   drive: Drive;
@@ -124,6 +125,8 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
   const { handleApplyToJob, handleApplyClick } = useStudentManagement();
   const [isInternalModalOpen, setIsInternalModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const { student } = useStudentManagement();
 
   const handleApply = () => {
     if (job.form_link) {
@@ -133,12 +136,21 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
     }
   };
 
-  const handleInternalApply = async (resumeFile: File) => {
-    if (!company?._id) return;
+  const handleInternalApply = async (resumeFile: File | null, savedResumeId?: string) => {
+    if (!company?._id) {
+      console.error('Company ID is missing');
+      return;
+    }
+    
+    if (!resumeFile && !savedResumeId) {
+      console.error('Resume file or saved resume ID is missing');
+      return;
+    }
     
     setLoading(true);
     try {
-      await handleApplyToJob(job._id, driveId, company._id, resumeFile);
+      await handleApplyToJob(job._id, driveId, company._id, resumeFile, savedResumeId);
+      setShowPreviewModal(true);
       // Handle success - you might want to show a success message
     } catch (error) {
       console.error('Error applying:', error);
@@ -148,8 +160,19 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
     }
   };
 
+  const handleViewApplication = () => {
+    // Only show preview modal for internal applications (no form_link)
+    if (job.hasApplied && student?._id && !job.form_link) {
+      setShowPreviewModal(true);
+    }
+  };
+
   return (
-    <Card className="border border-gray-200 shadow-sm">
+    <Card 
+      className="border border-gray-200 shadow-sm"
+      isPressable={job.hasApplied && !job.form_link} // Only make internal applications clickable
+      onPress={handleViewApplication}
+    >
       <CardBody className="space-y-4">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
@@ -164,7 +187,15 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
               <Chip color="primary" variant="flat" size="sm">{job.job_type}</Chip>
             )}
             {job.hasApplied && (
-              <Chip color="success" variant="flat" size="sm">Applied</Chip>
+              <Chip 
+                color="success" 
+                variant="flat" 
+                size="sm"
+                className={!job.form_link ? "cursor-pointer" : ""} // Only add cursor pointer for internal applications
+                onClick={!job.form_link ? handleViewApplication : undefined}
+              >
+                Applied
+              </Chip>
             )}
           </div>
         </div>
@@ -256,24 +287,61 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
         </Accordion>
 
         <div className="flex items-center gap-4 pt-2">
-          <Button
-            color="primary"
-            size="lg"
-            isDisabled={job.hasApplied}
-            onPress={handleApply}
-            isLoading={loading}
-          >
-            {job.hasApplied ? 'Applied' : job.form_link ? 'Apply via Form' : 'Apply Now'}
-          </Button>
+          {job.hasApplied ? (
+            job.form_link ? (
+              // For external applications, just show static "Applied" button
+              <Button
+                color="success"
+                variant="flat"
+                size="lg"
+                isDisabled
+              >
+                Applied via Form
+              </Button>
+            ) : (
+              // For internal applications, show view application button
+              <Button
+                color="success"
+                variant="flat"
+                size="lg"
+                onPress={handleViewApplication}
+              >
+                View Application
+              </Button>
+            )
+          ) : (
+            <Button
+              color="primary"
+              size="lg"
+              onPress={handleApply}
+              isLoading={loading}
+            >
+              {job.form_link ? 'Apply via Form' : 'Apply Now'}
+            </Button>
+          )}
         </div>
-      </CardBody>
 
-      <InternalApplyModal
-        isOpen={isInternalModalOpen}
-        onClose={() => setIsInternalModalOpen(false)}
-        jobTitle={job.title}
-        onApply={handleInternalApply}
-      />
+        {/* Only render modal for internal applications */}
+        {student?._id && !job.form_link && (
+          <ApplicationAndResumeModal
+            isOpen={showPreviewModal}
+            onClose={() => setShowPreviewModal(false)}
+            driveId={driveId}
+            jobId={job._id}
+            studentId={student._id}
+            jobTitle={job.title}
+          />
+        )}
+
+        <InternalApplyModal
+          isOpen={isInternalModalOpen}
+          onClose={() => setIsInternalModalOpen(false)}
+          jobTitle={job.title}
+          onApply={handleInternalApply}
+          driveId={driveId}
+          jobId={job._id}
+        />
+      </CardBody>
     </Card>
   );
 }

@@ -1,30 +1,35 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Tabs, Tab } from "@heroui/react";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Tabs, Tab, Spinner } from "@heroui/react";
 import { useState } from "react";
-import { Resume } from './types';
-import { pdf } from '@react-pdf/renderer';
-import ResumePDFDocument from './ResumePDF';
+import { ApplicationForm, Resume } from './types';
 import ResumePreview from './ResumePreview';
 import { FiDownload, FiEye } from 'react-icons/fi';
 import { useStudentManagement } from "./useStudentManagement";
+import ApplicationFormDisplay from './ApplicationFormDisplay';
+import { submitApplicationFormAPI } from "./API";
 
 interface InternalApplyModalProps {
   isOpen: boolean;
   onClose: () => void;
   jobTitle: string;
-  onApply: (resumeFile: File) => void;
+  onApply: (resumeFile: File | null, savedResumeId?: string) => void;
+  driveId: string;
+  jobId: string;
 }
 
-export function InternalApplyModal({ isOpen, onClose, jobTitle, onApply }: InternalApplyModalProps) {
+
+export function InternalApplyModal({ isOpen, onClose, jobTitle, onApply, driveId, jobId }: InternalApplyModalProps) {
   const [selectedTab, setSelectedTab] = useState("form");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [previewResume, setPreviewResume] = useState<Resume | null>(null);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [savedResumeId, setSavedResumeId] = useState<string | null>(null);
 
   const {
     resumes,
     resumeLoading,
     resumeError,
+    student,
+    loading: studentLoading
   } = useStudentManagement();
 
   // Handle preview in modal
@@ -35,28 +40,26 @@ export function InternalApplyModal({ isOpen, onClose, jobTitle, onApply }: Inter
   // Modified download function that returns the generated PDF blob
   const handleResumeSelect = (file: File | null) => {
     setResumeFile(file);
+    setSavedResumeId(null); // Clear any selected saved resume
+    if (file) {
+      setSelectedTab("review");
+    }
   };
 
   const handleDownloadAndSelect = async (resume: Resume) => {
     if (!resume || !resume._id) return;
 
-    setDownloadingId(resume._id);
-    try {
-      const blob = await pdf(<ResumePDFDocument formData={resume} />).toBlob();
-      // Create a File object from the blob
-      const file = new File([blob], `${resume.first_name}_${resume.last_name}_${resume.title || 'CV'}.pdf`, {
-        type: 'application/pdf'
-      });
-      
-      setResumeFile(file);
-      setSelectedResume(resume);
-      setSelectedTab("review");
-      
-    } catch (error) {
-      console.error('Failed to generate PDF:', error);
-    } finally {
-      setDownloadingId(null);
-    }
+    setSavedResumeId(resume._id);
+    setSelectedResume(resume);
+    setResumeFile(null); // Clear any uploaded file
+    setSelectedTab("review");
+  };
+
+  const handleFormSubmitted = async (submission: ApplicationForm) => {
+    // Move to the resume tab after form submission
+    if (!student?._id) return;
+    await submitApplicationFormAPI(submission, student._id);
+    setSelectedTab("review");
   };
 
   return (
@@ -69,22 +72,27 @@ export function InternalApplyModal({ isOpen, onClose, jobTitle, onApply }: Inter
               selectedKey={selectedTab} 
               onSelectionChange={(key) => setSelectedTab(key.toString())}
             >
-              <Tab key="form" title="Application Form">
-                <div className="space-y-4 py-4">
-                  <div className="text-gray-600">
-                    {/* Dummy form fields - can be expanded later */}
-                    <p>Application form content will go here</p>
+                <Tab key="form" title="Application Form">
+                <div className="space-y-4 py-4" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                  {studentLoading ? (
+                  <div className="flex justify-center p-4">
+                    <Spinner label="Loading student data..." />
                   </div>
-                  <div className="flex justify-end">
-                    <Button
-                      color="primary"
-                      onPress={() => setSelectedTab("review")}
-                    >
-                      Choose Resume →
-                    </Button>
+                  ) : !student?._id ? (
+                  <div className="text-center text-gray-600 p-4">
+                    Student data not available. Please try again later.
                   </div>
+                  ) : (
+                  <ApplicationFormDisplay
+                    driveId={driveId}
+                    jobId={jobId}
+                    studentId={student._id}
+                    onSubmitted={handleFormSubmitted}
+                    onCancel={() => onClose()}
+                  />
+                  )}
                 </div>
-              </Tab>
+                </Tab>
               <Tab key="review" title="Review & Submit">
                 <div className="space-y-4 py-4">
                   <Tabs isVertical>
@@ -118,10 +126,9 @@ export function InternalApplyModal({ isOpen, onClose, jobTitle, onApply }: Inter
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      isLoading={downloadingId === resume._id}
                                       onPress={() => handleDownloadAndSelect(resume)}
                                     >
-                                      <FiDownload /> Select
+                                      <FiDownload /> Download
                                     </Button>
                                   </div>
                                 </div>
@@ -164,12 +171,10 @@ export function InternalApplyModal({ isOpen, onClose, jobTitle, onApply }: Inter
             </Button>
             <Button
               color="primary"
-              isDisabled={!resumeFile}
+              isDisabled={!resumeFile && !savedResumeId}
               onPress={() => {
-                if (resumeFile) {
-                  onApply(resumeFile);
-                  onClose();
-                }
+                onApply(resumeFile, savedResumeId || undefined);
+                onClose();
               }}
             >
               Submit Application

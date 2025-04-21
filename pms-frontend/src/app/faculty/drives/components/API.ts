@@ -1,5 +1,5 @@
 //API.ts
-import { Drive, Company, Job, Requirement } from "./types";
+import { Drive, Company, Job, Requirement, DriveFormUpdate } from "./types";
 import { Performance, Student } from "@/app/students/components/types";
 
 export const fetchStudentsAPI = async (): Promise<Student[]> => {
@@ -416,6 +416,32 @@ export const confirmFinalSelectedStudentsAPI = async (jobId: string, selectedStu
         body: JSON.stringify(selectedStudents),
     });
 
+    if (!response.ok) {
+        throw new Error(`Server returned with an error: ${response.status}`);
+    }
+    return await response.json();
+};
+
+
+export const fetchDriveFormTemplateAPI = async (drive_id: string) => {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/drive-forms/drive/${drive_id}`, {
+        method: "GET",
+    });
+    if (!response.ok) {
+        throw new Error(`Server returned with an error: ${response.status}`);
+    }
+    return await response.json();
+};
+
+export const upsertDriveFormTemplateAPI = async (driveId: string, formData: DriveFormUpdate) => {
+    console.log("Sending form data:", JSON.stringify(formData));
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/drive-forms/${driveId}/update`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+    });
     if (!response.ok) {
         throw new Error(`Server returned with an error: ${response.status}`);
     }

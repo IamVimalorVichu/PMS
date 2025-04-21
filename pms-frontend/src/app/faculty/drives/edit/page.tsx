@@ -15,6 +15,8 @@ import ViewEligibleStudentsModal from "../components/ViewEligibleStudentsModal";
 import DriveStatusModal from "../components/DriveStatusModal";
 import { Job } from "../components/types";
 import { useDriveManagement } from "../components/useDriveManagement";
+import DriveFormTemplate from "../components/DriveFormTemplate";
+import { upsertDriveFormTemplateAPI } from "../components/API";
 
 export default function Edit() {
     // --- State for Modals and UI ---
@@ -78,7 +80,6 @@ export default function Edit() {
         preferredQualifications, setPreferredQualifications,
         requiredCertifications, setRequiredCertifications,
         languageRequirements, setLanguageRequirements,
-        disabled,
         selected, setSelected: setSelectedState,
         startAddingDrive,
         startUpdatingDrive,
@@ -261,7 +262,7 @@ export default function Edit() {
             color="primary"
             selectedKey={selected}
             onSelectionChange={(key) => setSelectedState(key.toString())}
-            disabledKeys={isEditMode ? disabled : ["general", "Companies", "Jobs"]}
+            disabledKeys={isEditMode ? [] : ["general", "Companies", "Jobs", "FormTemplate"]}
             classNames={{
               tabList: "flex flex-wrap items-center gap-4 border-b pb-2 mt-4",
             }}
@@ -274,6 +275,33 @@ export default function Edit() {
             </Tab>
             <Tab key="Jobs" title="Job Details">
               <JobDetailsTab {...jobDetailsProps} />
+            </Tab>
+            <Tab key="FormTemplate" title="Form Template">
+              <DriveFormTemplate 
+                  driveId={drive_id}
+                  onSaveSuccess={(updatedTemplate) => {
+                      // Optionally handle successful template save
+                      // For example, show a success message or refresh drive data
+                      if (drive_id) {
+                          upsertDriveFormTemplateAPI(drive_id, updatedTemplate)
+                              .then(() => {
+                                  console.log("Template saved successfully");
+                                  // Optionally refresh the drive data or show a success message
+                              }
+                              )
+                              .catch((error) => {
+                                  console.error("Error saving template:", error);
+                                  // Optionally show an error message
+                              }
+                          );
+                      }
+                  }}
+                  onCancel={() => {
+                      // Optionally handle cancel
+                      // For example, switch back to another tab
+                      setSelectedState("general");
+                  }}
+              />
             </Tab>
           </Tabs>
         </div>

@@ -122,15 +122,17 @@ export interface JobApplication {
   _id?: string;
   student_id: string;
   job_id: string;
-  status: string;
+  company_id: string;
+  drive_id: string;
+  status: 'Applied' | 'Shortlisted' | 'Rejected' | 'Placed';
+  created_at?: Date;
+  updated_at?: Date;
   applied_date?: Date;
   shortlisted_date?: Date;
   rejected_date?: Date;
-  created_at?: Date;
-  updated_at?: Date;
+  resume?: string;
+  saved_resume?: string;
 }
-
-// ...existing code...
 
 export interface Education {
   start_time?: string;
@@ -258,3 +260,39 @@ export interface DeleteConfirmation {
   file: FileInfo | null;
   type: 'certification' | 'job_application' | null;
 }
+
+export interface ApplicationForm {
+  _id?: string;
+  drive_id: string;
+  job_id: string;
+  student_id: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  district?: string;
+  adm_no?: string;
+  reg_no?: string;
+  gender?: string;
+  email?: string;
+  alt_email?: string;
+  ph_no?: string;
+  alt_ph?: string;
+  program?: string;
+  student_status?: string;
+  tenth_cgpa?: string;
+  twelfth_cgpa?: string;
+  degree_cgpa?: string;
+  mca_cgpa?: string;
+  skills?: string;
+  current_status?: string;
+  mca_percentage?: string;
+  linkedin_url?: string;
+  additional_answers: { [key: string]: string };
+  submitted_at?: Date;
+  updated_at?: Date;
+}
+
+export type ApplicationFormUpdate = Partial<Omit<ApplicationForm, '_id' | 'drive_id' | 'job_id' | 'student_id' | 'submitted_at' | 'updated_at'>>;

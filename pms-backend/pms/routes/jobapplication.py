@@ -48,6 +48,16 @@ async def get_jobapplications_by_job(job_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching data: {str(e)}"
         )
+@router.get("/job-student/{job_id}/{student_id}", response_model=JobApplication)
+async def get_jobapplication_by_job_and_student(job_id: str, student_id: str):
+    try:
+        application = await jobapplication_mgr.get_jobapplication_by_job_and_student(job_id, student_id)
+        return application
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching data: {str(e)}"
+        )
 
 @router.post("/add")
 async def add_jobapplication(application: JobApplication):

@@ -30,7 +30,10 @@ from pms.routes.resume import router as resumeRouter
 from pms.services.resume_services import resume_mgr
 from pms.routes.alumni import router as alumniRouter
 from pms.services.alumni_services import alumni_mgr
-
+from pms.routes.drive_form import router as drive_form_router
+from pms.routes.application_form import router as application_form_router
+from pms.services.drive_form_services import drive_form_mgr
+from pms.services.application_form_services import application_form_mgr
 
 
 origins = [
@@ -62,6 +65,8 @@ async def lifespan(app: FastAPI):
     await jobapplication_mgr.initialize()
     await resume_mgr.initialize()
     await alumni_mgr.initialize()
+    await drive_form_mgr.initialize()
+    await application_form_mgr.initialize()
     yield
     # Shutdown
     await db.close()
@@ -95,6 +100,8 @@ app.include_router(jobApplicationRouter, tags=["Job Applications"], prefix="/job
 app.include_router(uploadRouter, tags=["Uploads"], prefix="/uploads")
 app.include_router(resumeRouter, tags=["Resume"], prefix="/resume")
 app.include_router(alumniRouter, tags=["Alumni"], prefix="/alumni")
+app.include_router(drive_form_router, prefix="/drive-forms", tags=["Drive Forms"])
+app.include_router(application_form_router,prefix="/applications-form",tags=["Application Forms"])
 app.mount("/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
 
 

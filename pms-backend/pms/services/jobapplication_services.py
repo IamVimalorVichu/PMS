@@ -61,6 +61,8 @@ class JobApplicationMgr:
             application_data["created_at"] = datetime.now()
             application_data["updated_at"] = datetime.now()
             application_data["applied_date"] = datetime.now()
+
+            print("Application Data:", application)
             
             # Check if application already exists
             existing = await self.jobapplication_collection.find_one({
@@ -70,15 +72,15 @@ class JobApplicationMgr:
             if existing:
                 raise Exception("Student has already applied for this job")
             
-            # Validate resume path
-            if not application_data.get("resume"):
-                raise Exception("Resume is required")
+            # Validate resume - either resume or saved_resume must be present
+            if not application_data.get("resume") and not application_data.get("saved_resume"):
+                raise Exception("Either resume path or saved resume ID is required")
             
             response = await self.jobapplication_collection.insert_one(application_data)
-            applied_student_id=application_data["student_id"]
+            applied_student_id = application_data["student_id"]
             applied_job_id = application_data["job_id"]
             applied_drive_id = application_data["drive_id"]
-            await job_mgr.apply_to_job(applied_drive_id,applied_job_id, applied_student_id)
+            await job_mgr.apply_to_job(applied_drive_id, applied_job_id, applied_student_id)
             application_data["_id"] = str(response.inserted_id)
             return application_data
         except Exception as e:
@@ -118,6 +120,18 @@ class JobApplicationMgr:
             return response
         except Exception as e:
             raise Exception(f"Error deleting job application: {str(e)}")
+    async def get_jobapplication_by_job_and_student(self, job_id: str, student_id: str):
+        try:
+            application = await self.jobapplication_collection.find_one({
+                "job_id": job_id,
+                "student_id": student_id
+            })
+            if not application:
+                raise Exception("Job application not found")
+            application["_id"] = str(application["_id"])
+            return application
+        except Exception as e:
+            raise Exception(f"Error fetching data: {str(e)}")
 
 
 jobapplication_mgr = JobApplicationMgr()

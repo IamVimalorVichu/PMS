@@ -16,4 +16,5 @@ class JobApplication(BaseModel):
     shortlisted_date: Optional[datetime] = None
     rejected_date: Optional[datetime] = None
     resume: Optional[str] = None
+    saved_resume: Optional[str] = None
 
