@@ -40,14 +40,16 @@ async def create_new_post(
 async def list_posts(
     skip: int = 0,
     limit: int = Query(default=10, le=50), # Limit results per page
-    current_user: User = Depends(get_current_active_user) # Pass user to service for filtering
+    # current_user: User = Depends(get_current_active_user) # Pass user to service for filtering
 ):
     """
     Retrieves a list of approved posts. Admins see all posts.
     Sorted by creation date descending.
     """
     try:
-        posts = await post_mgr.get_posts(skip=skip, limit=limit, current_user=current_user)
+        # posts = await post_mgr.get_posts(skip=skip, limit=limit, current_user=current_user)
+        posts = await post_mgr.get_posts(skip=skip, limit=limit)
+
         return posts
     except Exception as e:
         # Log e
@@ -56,14 +58,13 @@ async def list_posts(
 @router.get("/posts/{post_id}", response_model=PostRead)
 async def get_single_post(
     post_id: str,
-    current_user: User = Depends(get_current_active_user) # Pass user to service for access check
 ):
     """
     Retrieves a single post by its ID.
     Requires the post to be approved unless viewed by admin or author.
     """
     try:
-        post = await post_mgr.get_post_by_id(post_id, current_user)
+        post = await post_mgr.get_post_by_id(post_id)
         if not post:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
         return post
@@ -79,14 +80,13 @@ async def get_single_post(
 async def add_comment_to_post(
     post_id: str,
     comment_data: CommentCreate,
-    current_user: User = Depends(get_current_active_user)
 ):
     """
     Adds a comment to a specific post.
     """
     try:
         # Service handles checking user's can_comment permission
-        comment = await comment_mgr.create_comment(comment_data, post_id, current_user)
+        comment = await comment_mgr.create_comment(comment_data, post_id)
         return comment
     except HTTPException as he:
         raise he
@@ -99,14 +99,13 @@ async def get_post_comments(
     post_id: str,
     skip: int = 0,
     limit: int = Query(default=20, le=100),
-    current_user: User = Depends(get_current_active_user) # Needed for dependency check, might use later
 ):
     """
     Retrieves comments for a specific post. Sorted oldest first.
     """
     try:
         # First, check if the post itself is accessible to the user
-        post_accessible = await post_mgr.get_post_by_id(post_id, current_user)
+        post_accessible = await post_mgr.get_post_by_id(post_id)
         if not post_accessible:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
 
@@ -121,13 +120,12 @@ async def get_post_comments(
 @router.delete("/comments/{comment_id}", status_code=status.HTTP_200_OK)
 async def delete_a_comment(
     comment_id: str,
-    current_user: User = Depends(get_current_active_user)
 ):
     """
     Deletes a comment. Requires user to be the author or an admin.
     """
     try:
-        result = await comment_mgr.delete_comment(comment_id, current_user)
+        result = await comment_mgr.delete_comment(comment_id)
         return result
     except HTTPException as he:
         raise he
@@ -141,7 +139,6 @@ async def delete_a_comment(
 @router.post("/posts/{post_id}/upvote", response_model=VoteResult)
 async def upvote_a_post(
     post_id: str,
-    current_user: User = Depends(get_current_active_user)
 ):
     """
     Adds the current user's upvote to a post. Idempotent.
@@ -149,11 +146,11 @@ async def upvote_a_post(
     """
     try:
         # Ensure post exists and is accessible first (implicit check in service is possible too)
-        post_accessible = await post_mgr.get_post_by_id(post_id, current_user)
+        post_accessible = await post_mgr.get_post_by_id(post_id)
         if not post_accessible:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
 
-        result = await post_mgr.upvote_post(post_id, str(current_user.id))
+        result = await post_mgr.upvote_post(post_id)
         return result
     except HTTPException as he:
         raise he

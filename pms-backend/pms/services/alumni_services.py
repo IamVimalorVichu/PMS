@@ -36,8 +36,10 @@ class AlumniMgr:
                 email=alumni.email,
                 ph_no=alumni.ph_no,
                 role="alumni",
-                status="Active"
-            )
+                status="Active",
+                can_post=True,
+                can_comment=True
+                )
             
             # Add user first
             user_response = await user_mgr.add_user(user)

@@ -1,3 +1,20 @@
+export interface User {
+  _id?: string;
+  user_name?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  email?: string;
+  ph_no?: string;
+  password?: string;
+  role?: 'admin' | 'faculty' | 'student' | 'alumni';
+  status?: 'Inactive' | 'Active';
+  can_post?: boolean;
+  can_comment?: boolean;
+
+}
+
 export interface Requirement {
     _id?: string;
     job: string;

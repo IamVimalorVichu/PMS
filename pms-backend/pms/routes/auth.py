@@ -16,43 +16,35 @@ router = APIRouter()
 
 @router.post("/login") # Use the same path as tokenUrl in oauth2_scheme
 async def login_for_access_token(
-    form_data: UserLogin # Use standard form data
+    # form_data: OAuth2PasswordRequestForm = Depends() # Use standard form data
+        user_login_data: UserLogin
+
 ):
     """
     Logs in a user using email and password provided as form data.
     Returns an access token upon successful authentication.
     """
     try:
-        # Adapt the call to user_mgr.login_user if it expects a model.
-        # Option 1: If login_user expects email/password strings:
-        # response = await user_mgr.login_user(email=form_data.username, password=form_data.password)
-
-        # Option 2: If login_user MUST take the UserLogin model:
-        user_login_data = UserLogin(email=form_data.email, password=form_data.password)
-        response = await user_mgr.login_user(user_login_data)
-
-        # Assuming user_mgr.login_user was adapted or already takes email/password:
-        # Note: OAuth2PasswordRequestForm uses 'username' field for the first identifier (email in your case)
         # logger.info(f"Login attempt for user: {form_data.username}")
-        # response = await user_mgr.login_user(email=form_data.username, password=form_data.password)
+        # print(f"Login attempt for user: {form_data.username}")
+        # user_login_data = UserLogin(email=form_data.username, password=form_data.password)
+        # response = await user_mgr.login_user(user=user_login_data)
+        response = await user_mgr.login_user(user=user_login_data)
 
-        # The login_user service should return a dictionary compatible with token response,
-        # typically {"access_token": "...", "token_type": "bearer"}
-        # It should raise specific HTTPExceptions on failure (e.g., 401, 400).
+
         if not response or "access_token" not in response:
-             logger.error(f"Login service for {form_data.username} did not return valid token structure.")
+             logger.error(f"Login service for {user_login_data.email} did not return valid token structure.")
              raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Login service error.")
 
-        # Return the exact response from the service if it includes token_type etc.
         return response
 
     except HTTPException as he:
         # If login_user raises HTTPException (e.g., 401 for bad credentials), re-raise it
-        logger.warning(f"Login failed for {form_data.username}: {he.detail} (Status: {he.status_code})")
+        logger.warning(f"Login failed for {user_login_data.email}: {he.detail} (Status: {he.status_code})")
         raise he
     except Exception as e:
         # Catch any other unexpected errors from the login service
-        logger.error(f"Unexpected error during login for {form_data.username}: {e}", exc_info=True)
+        logger.error(f"Unexpected error during login for {user_login_data.email}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An internal error occurred during login.",

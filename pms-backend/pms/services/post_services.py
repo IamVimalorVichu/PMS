@@ -52,9 +52,9 @@ class PostMgr:
         if not current_user.can_post:
              raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have permission to post.")
 
-        post_doc = post_data.model_dump()
+        post_doc = post_data.model_dump(mode="json")
         post_doc["author_id"] = str(current_user.id) # Assuming current_user has id populated
-        post_doc["created_at"] = datetime.utcnow()
+        post_doc["created_at"] = datetime.now()
         post_doc["upvoter_ids"] = []
         post_doc["comment_count"] = 0
 

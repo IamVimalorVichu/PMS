@@ -1,0 +1,66 @@
+// app/community/components/posts/PostPreview.tsx
+import Link from 'next/link';
+import { Post } from '@/app/community/types/post'; // Adjust path as needed
+import { FaArrowUp, FaComments } from 'react-icons/fa6';
+
+// Helper function to format dates (you might have a shared one)
+const formatDate = (dateString: string): string => {
+  try {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  } catch {
+    return "Inval_id Date";
+  }
+};
+
+interface PostPreviewProps {
+  post: Post;
+}
+
+// This component can be a Server Component as it just displays data
+export function PostPreview({ post }: PostPreviewProps) {
+  const upvoteCount = post.upvoter_ids?.length ?? 0; // Calculate from array
+
+  return (
+    <div className="border rounded-lg p-4 mb-4 shadow-sm bg-white dark:bg-gray-800 dark:border-gray-700 transition-colors duration-200">
+      <Link href={`/community/posts/${post._id}`} className="hover:text-blue-600 dark:hover:text-blue-400">
+        <h2 className="text-xl font-semibold mb-2 line-clamp-2">{post.title}</h2>
+      </Link>
+      {/* Display content preview for text posts - Optional */}
+      {post.post_type === 'text' && post.content && (
+         <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-3">{post.content}</p>
+      )}
+      {/* Display link preview for link posts - Optional */}
+      {post.post_type === 'link' && post.url && (
+         <a href={post.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 hover:underline break-all block mb-3 text-sm">
+            {post.url}
+         </a>
+      )}
+      {/* Display media indication - Optional */}
+      {post.post_type === 'media' && (
+         <p className="text-gray-500 dark:text-gray-400 italic mb-3 text-sm">Media Post</p>
+      )}
+
+      <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap gap-x-4 gap-y-1 items-center">
+        <span>
+          Posted by <span className="font-medium text-gray-700 dark:text-gray-300">{post.author?.user_name || 'Unknown User'}</span>
+        </span>
+        <span>
+          on {formatDate(post.created_at)}
+        </span>
+        <div className="flex items-center gap-4">
+            {/* Placeholder for Upvote Button */}
+            <span title="Upvotes">
+                <FaArrowUp className="h-4 w-4 inline mr-1" />
+                {upvoteCount}
+            </span>
+            <span title="Comments">
+                <FaComments className="h-4 w-4 inline mr-1" />
+                {post.comment_count ?? 0}
+            </span>
+        </div>
+      </div>
+    </div>
+  );
+}

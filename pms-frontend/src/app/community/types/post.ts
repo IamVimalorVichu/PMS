@@ -1,0 +1,51 @@
+// app/community/types/post.ts
+
+// Define UserBasicInfo here for encapsulation within community types
+// Or import from a global type file if preferred (e.g., '@/types/auth')
+export interface UserBasicInfo {
+    id: string; // Or _id if backend uses that alias primarily in responses
+    user_name?: string;
+    role: "admin" | "faculty" | "student" | "alumni";
+  }
+  
+  // Main Post type, matching backend PostRead schema
+  export interface Post {
+    _id: string; // Or _id
+    title: string;
+    content?: string; // For text posts
+    post_type: 'text' | 'link' | 'media';
+    url?: string; // For link posts (assuming backend sends HttpUrl as string)
+    media_url?: string; // For media posts (assuming backend sends HttpUrl as string)
+    created_at: string; // ISO date string from backend
+    author_id: string;
+    is_approved: boolean;
+    upvoter_ids: string[]; // List of user IDs who upvoted
+    comment_count: number;
+    author?: UserBasicInfo; // Embedded author info
+    // Optional: Add upvote_count if the backend calculates and sends it
+    // upvote_count?: number;
+  }
+  
+  // Type matching backend VoteStatus schema
+  export interface VoteStatus {
+    has_voted: boolean;
+  }
+  
+  // Type matching backend VoteResult schema
+  export interface VoteResult {
+    new_count: number; // Note: 'int' isn't a standard TS type, use 'number'
+    voted: boolean;
+  }
+  
+  // Type correction for VoteResult
+  export interface VoteResultCorrected {
+    new_count: number;
+    voted: boolean;
+  }
+  
+  // Optional: Define a specific type for the data needed by PostPreview
+  // This can be useful if PostPreview only needs a subset of Post fields.
+  // For simplicity now, PostPreview will just use the full Post type.
+  // export interface PostPreviewData extends Pick<Post, 'id' | 'title' | 'created_at' | 'comment_count' | 'upvoter_ids'> {
+  //   author?: Pick<UserBasicInfo, 'user_name'>;
+  // }
