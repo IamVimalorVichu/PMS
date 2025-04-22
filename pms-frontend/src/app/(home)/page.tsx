@@ -137,7 +137,14 @@ export default function Login() {
                 }
               />
 
-              {/* Submit Button styled above */}
+                {/* Submit Button styled above */}
+                <Button
+                type="submit"
+                isLoading={loading}
+                className="w-full bg-primary text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                >
+                {loading ? STRINGS.SUBMIT_BUTTON_LOADING : STRINGS.SUBMIT_BUTTON_DEFAULT}
+                </Button>
             </Form>
           </>
         )}
