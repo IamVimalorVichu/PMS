@@ -1,7 +1,7 @@
 // Login.tsx
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { Input, Button, Form, Spinner } from "@heroui/react"; // Grouped third-party UI
@@ -56,11 +56,11 @@ export default function Login() {
   const handleResetSuccess = useCallback(() => {
     setShowResetPassword(false);
     toast.success("Password reset successful. You can now log in.");
-  }, []);
+  }, [setShowResetPassword]);
 
   const handleResetCancel = useCallback(() => {
     setShowResetPassword(false);
-  }, []);
+  }, [setShowResetPassword]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 sm:px-6 lg:px-8">
