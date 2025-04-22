@@ -41,6 +41,10 @@ const TOAST_MESSAGES = {
     INVALID_ROLE: "Login successful, but user role is invalid or not configured for redirection.",
     LOGIN_FAILED: "Failed to login:", // Prefix for specific errors
     LOGIN_FAILED_GENERIC: "Failed to login. Please try again.", // Generic fallback
+    PASSWORD_INCORRECT: "Incorrect password. Please try again.",
+    EMAIL_NOT_FOUND: "Email not found. Please check your email address.",
+    NETWORK_ERROR: "Connection error. Please check your internet connection.",
+    RESET_REQUIRED: "Your account needs to be activated. Please reset your password.",
 };
 
 
@@ -50,6 +54,7 @@ export const useLoginManagement = () => {
   const [error, setError] = useState(""); 
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const router = useRouter();
 
   const toggleVisibility = useCallback(() => {
@@ -67,13 +72,15 @@ export const useLoginManagement = () => {
     setError(""); // Clear previous errors
 
     try {
+      // Pre-fetch the next page data while logging in
       const data = await loginUserAPI(email, password);
 
-      // Check user status
+      // Check user status and show reset password
       if (data.status === USER_STATUS_INACTIVE) {
-        toast.error(TOAST_MESSAGES.ACCOUNT_INACTIVE);
-        setError(TOAST_MESSAGES.ACCOUNT_INACTIVE); 
-        return; 
+        toast.info(TOAST_MESSAGES.RESET_REQUIRED);
+        setShowResetPassword(true);
+        setLoading(false);
+        return;
       }
 
       // Set authentication cookie
@@ -84,35 +91,45 @@ export const useLoginManagement = () => {
         sameSite: 'Strict'
       });
 
-      toast.success(TOAST_MESSAGES.LOGIN_SUCCESS);
-
-      // Determine redirection path based on role
       const redirectPath = ROLE_REDIRECT_MAP[data.role];
-
-      if (redirectPath) {
-        router.push(redirectPath);
-      } else {
-          // Handle unknown or unmapped roles
-          setError(TOAST_MESSAGES.INVALID_ROLE);
-          toast.warn(TOAST_MESSAGES.INVALID_ROLE);
-          console.warn(`Unknown or unmapped role encountered: ${data.role}`);
-          // Optional: redirect to a default dashboard or show an error page
-          // router.push('/dashboard');
+      if (!redirectPath) {
+        throw new Error(TOAST_MESSAGES.INVALID_ROLE);
       }
+
+      // Use router.prefetch before actual navigation
+      await router.prefetch(redirectPath);
+      
+      toast.success(TOAST_MESSAGES.LOGIN_SUCCESS);
+      
+      // Force a hard navigation to ensure fresh data
+      window.location.href = redirectPath;
 
     } catch (err) {
       let errorMessage = TOAST_MESSAGES.LOGIN_FAILED_GENERIC;
-      if (err instanceof ApiError) {
-        errorMessage = err.message;
-        console.error(`${TOAST_MESSAGES.LOGIN_FAILED} ${errorMessage}`);
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-        console.error(`${TOAST_MESSAGES.LOGIN_FAILED} ${errorMessage}`);
-      } else {
-        console.error("An unknown error occurred during login:", err);
+      
+      if (err instanceof Error) {
+        // Parse the backend error message
+        try {
+          const errorObj = JSON.parse(err.message);
+          if (errorObj.detail?.error) {
+            if (errorObj.detail.error.includes("Incorrect password")) {
+              errorMessage = TOAST_MESSAGES.PASSWORD_INCORRECT;
+            } else if (errorObj.detail.error.includes("User not found")) {
+              errorMessage = TOAST_MESSAGES.EMAIL_NOT_FOUND;
+            }
+          }
+        } catch {
+          // If error message isn't JSON, use it directly
+          errorMessage = err.message;
+        }
       }
-      setError(errorMessage); 
-      toast.error(`${TOAST_MESSAGES.LOGIN_FAILED} ${errorMessage}`); 
+      
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 4000,
+        hideProgressBar: false,
+      });
     } finally {
       setLoading(false); 
     }
@@ -126,5 +143,7 @@ export const useLoginManagement = () => {
     visible,
     toggleVisibility,
     handleLogin,
+    showResetPassword,
+    setShowResetPassword,
    };
 };

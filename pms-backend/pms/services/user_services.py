@@ -35,6 +35,20 @@ class UserMgr:
             response = await self.users_collection.insert_one(user_data)
             user_id = str(response.inserted_id)
 
+            # Sync with role-specific collection
+            if user_data["role"] in ["student", "faculty", "alumni"]:
+                from pms.services.student_services import student_mgr
+                from pms.services.faculty_services import faculty_mgr
+                from pms.services.alumni_services import alumni_mgr
+
+                role_mgr = {
+                    "student": student_mgr,
+                    "faculty": faculty_mgr,
+                    "alumni": alumni_mgr
+                }[user_data["role"]]
+
+                await role_mgr.sync_from_user(user_data, user_id)
+
             return {
                 "status": "success",
                 "message": f"User added with id: {user_id}",
@@ -96,6 +110,20 @@ class UserMgr:
             if not updated_user:
                 raise Exception("User not found")
 
+            # Sync with role-specific collection
+            if updated_user["role"] in ["student", "faculty", "alumni"]:
+                from pms.services.student_services import student_mgr
+                from pms.services.faculty_services import faculty_mgr
+                from pms.services.alumni_services import alumni_mgr
+
+                role_mgr = {
+                    "student": student_mgr,
+                    "faculty": faculty_mgr,
+                    "alumni": alumni_mgr
+                }[updated_user["role"]]
+
+                await role_mgr.sync_from_user(user_data, user_id)
+
             updated_user["_id"] = str(updated_user["_id"])
             return updated_user
         except Exception as e:
@@ -103,6 +131,24 @@ class UserMgr:
 
     async def delete_user(self, user_id: str):
         try:
+            user = await self.users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                raise Exception("User not found")
+
+            # Delete from role-specific collection first
+            if user["role"] in ["student", "faculty", "alumni"]:
+                from pms.services.student_services import student_mgr
+                from pms.services.faculty_services import faculty_mgr
+                from pms.services.alumni_services import alumni_mgr
+
+                role_mgr = {
+                    "student": student_mgr,
+                    "faculty": faculty_mgr,
+                    "alumni": alumni_mgr
+                }[user["role"]]
+
+                await role_mgr.delete_by_user_id(str(user["_id"]))
+
             result = await self.users_collection.delete_one({"_id": ObjectId(user_id)})
             if result.deleted_count > 0:
                 return {"status": "success", "message": "User deleted successfully"}

@@ -196,4 +196,42 @@ class StudentMgr:
         except Exception as e:
             raise Exception(f"Error fetching drives for student: {str(e)}")
 
-student_mgr = StudentMgr()
+    async def sync_from_user(self, user_data: dict, user_id: str):
+        """Synchronize student data when user is updated"""
+        try:
+            # Check if student record exists
+            existing = await self.students_collection.find_one({"user_id": user_id})
+            
+            sync_data = {
+                "first_name": user_data.get("first_name"),
+                "middle_name": user_data.get("middle_name"),
+                "last_name": user_data.get("last_name"),
+                "email": user_data.get("email"),
+                "ph_no": user_data.get("ph_no"),
+                "gender": user_data.get("gender"),
+                "updated_at": datetime.now()
+            }
+
+            if existing:
+                # Update existing record
+                await self.students_collection.update_one(
+                    {"user_id": user_id},
+                    {"$set": sync_data}
+                )
+            else:
+                # Create new record
+                sync_data["user_id"] = user_id
+                sync_data["created_at"] = datetime.now()
+                await self.students_collection.insert_one(sync_data)
+
+        except Exception as e:
+            raise Exception(f"Error syncing student data: {str(e)}")
+
+    async def delete_by_user_id(self, user_id: str):
+        """Delete student record by user_id"""
+        try:
+            result = await self.students_collection.delete_one({"user_id": user_id})
+            return result.deleted_count > 0
+        except Exception as e:
+            raise Exception(f"Error deleting student record: {str(e)}")
+               

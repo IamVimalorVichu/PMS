@@ -153,4 +153,39 @@ class AlumniMgr:
         except Exception as e:
             raise Exception(f"Error updating alumni: {str(e)}")
 
-alumni_mgr = AlumniMgr()
+    async def sync_from_user(self, user_data: dict, user_id: str):
+        """Synchronize alumni data when user is updated"""
+        try:
+            existing = await self.alumni_collection.find_one({"user_id": user_id})
+            
+            sync_data = {
+                "first_name": user_data.get("first_name"),
+                "middle_name": user_data.get("middle_name"),
+                "last_name": user_data.get("last_name"),
+                "email": user_data.get("email"),
+                "ph_no": user_data.get("ph_no"),
+                "gender": user_data.get("gender"),
+                "updated_at": datetime.now()
+            }
+
+            if existing:
+                await self.alumni_collection.update_one(
+                    {"user_id": user_id},
+                    {"$set": sync_data}
+                )
+            else:
+                sync_data["user_id"] = user_id
+                sync_data["created_at"] = datetime.now()
+                await self.alumni_collection.insert_one(sync_data)
+
+        except Exception as e:
+            raise Exception(f"Error syncing alumni data: {str(e)}")
+
+    async def delete_by_user_id(self, user_id: str):
+        """Delete alumni record by user_id"""
+        try:
+            result = await self.alumni_collection.delete_one({"user_id": user_id})
+            return result.deleted_count > 0
+        except Exception as e:
+            raise Exception(f"Error deleting alumni record: {str(e)}")
+               

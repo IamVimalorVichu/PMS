@@ -1,11 +1,12 @@
 // Login.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
-import { Input, Button, Form } from "@heroui/react"; // Grouped third-party UI
+import { Input, Button, Form, Spinner } from "@heroui/react"; // Grouped third-party UI
 import { IoMdEye, IoMdEyeOff } from "react-icons/io"; // Grouped icons
+import { ResetPassword } from "./components/ResetPassword";
 
 import { useLoginManagement } from "./components/useLoginManagement"; // Local hook
 
@@ -30,15 +31,7 @@ const STRINGS = {
 export default function Login() {
   const searchParams = useSearchParams();
   const toastMessage = searchParams.get('toast');
-
-  // Effect to display toast messages from URL parameters
-  useEffect(() => {
-    if (toastMessage) {
-      // Consider adding different toast types (info, warning) if needed
-      toast.error(toastMessage);
-    }
-  }, [toastMessage]);
-
+  
   // Manage login state and actions via custom hook
   const {
     email, setEmail,
@@ -48,69 +41,106 @@ export default function Login() {
     visible,
     toggleVisibility,
     handleLogin,
+    showResetPassword,  // Add this
+    setShowResetPassword, // Add this
   } = useLoginManagement();
 
+  // Effect to display toast messages from URL parameters
+  useEffect(() => {
+    if (toastMessage) {
+      // Consider adding different toast types (info, warning) if needed
+      toast.error(toastMessage);
+    }
+  }, [toastMessage]);
+
+  const handleResetSuccess = useCallback(() => {
+    setShowResetPassword(false);
+    toast.success("Password reset successful. You can now log in.");
+  }, []);
+
+  const handleResetCancel = useCallback(() => {
+    setShowResetPassword(false);
+  }, []);
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
-      {/* Login Card */}
-      <div className="w-96 rounded-lg bg-white p-6 shadow-lg">
-        <h1 className="mb-4 text-2xl font-bold text-black">
-          {STRINGS.WELCOME_TITLE}
-        </h1>
-
-        {/* Status Messages */}
-        {loading && <p className="mb-2 text-sm text-blue-500">{STRINGS.LOADING_USERS}</p>}
-        {error && <p className="mb-2 text-sm text-red-500">{error}</p>}
-
-        {/* Login Form */}
-        <Form onSubmit={handleLogin}>
-          {/* Email Input */}
-          <Input
-            type="email"
-            aria-label={STRINGS.EMAIL_LABEL} // Accessibility improvement
-            isClearable
-            placeholder={STRINGS.EMAIL_PLACEHOLDER}
-            variant="underlined"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mb-2 w-full rounded border p-2 text-black" // Combined width/margin classes
-            autoComplete="email" // Help password managers
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+        {showResetPassword ? (
+          <ResetPassword
+            email={email}
+            onSuccess={handleResetSuccess}
+            onCancel={handleResetCancel}
           />
+        ) : (
+          <>
+            {/* Logo/Brand Section */}
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                {STRINGS.WELCOME_TITLE}
+              </h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Please sign in to your account
+              </p>
+            </div>
 
-          {/* Password Input */}
-          <Input
-            type={visible ? "text": "password"}
-            aria-label={STRINGS.PASSWORD_LABEL} // Accessibility improvement
-            isClearable
-            variant="underlined"
-            placeholder={STRINGS.PASSWORD_PLACEHOLDER}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mb-4 w-full rounded border p-2 text-black" // Combined width/margin classes
-            autoComplete="current-password" // Help password managers
-            endContent={
-              <Button
-                isIconOnly
-                variant="light"
-                onPress={toggleVisibility}
-                aria-label={STRINGS.TOGGLE_VISIBILITY_LABEL} // Accessibility improvement
-                className="text-gray-500 data-[hover=true]:bg-[initial]" // Ensure this style override is needed
-              >
-                {visible ? <IoMdEyeOff /> : <IoMdEye />}
-              </Button>
-            }
-          />
+            {/* Status Messages */}
+            {loading && (
+              <div className="flex items-center justify-center text-sm text-blue-600">
+                <Spinner size="sm" className="mr-2" />
+                {STRINGS.LOADING_USERS}
+              </div>
+            )}
+            
+            {error && (
+              <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">
+                {error}
+              </div>
+            )}
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            color="secondary"
-            className="w-full rounded px-4 py-2 hover:bg-primary disabled:bg-gray-400" // Consistent width class
-            disabled={loading}
-          >
-            {loading ? STRINGS.SUBMIT_BUTTON_LOADING : STRINGS.SUBMIT_BUTTON_DEFAULT}
-          </Button>
-        </Form>
+            {/* Login Form */}
+            <Form 
+              onSubmit={handleLogin}
+              className="mt-8 space-y-6"
+            >
+              <Input
+                type="email"
+                label={STRINGS.EMAIL_LABEL}
+                placeholder={STRINGS.EMAIL_PLACEHOLDER}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full rounded-lg border-gray-300 shadow-sm
+                          focus:border-primary focus:ring-primary sm:text-sm"
+                autoComplete="email"
+                required
+              />
+
+              <Input
+                type={visible ? "text" : "password"}
+                label={STRINGS.PASSWORD_LABEL}
+                placeholder={STRINGS.PASSWORD_PLACEHOLDER}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="block w-full rounded-lg border-gray-300 shadow-sm
+                          focus:border-primary focus:ring-primary sm:text-sm"
+                autoComplete="current-password"
+                required
+                endContent={
+                  <Button
+                    isIconOnly
+                    variant="light"
+                    onPress={toggleVisibility}
+                    aria-label={STRINGS.TOGGLE_VISIBILITY_LABEL}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    {visible ? <IoMdEyeOff size={20} /> : <IoMdEye size={20} />}
+                  </Button>
+                }
+              />
+
+              {/* Submit Button styled above */}
+            </Form>
+          </>
+        )}
       </div>
     </div>
   );
