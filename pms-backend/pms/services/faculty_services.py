@@ -186,3 +186,5 @@ class FacultyMgr:
             return result.deleted_count > 0
         except Exception as e:
             raise Exception(f"Error deleting faculty record: {str(e)}")
+
+faculty_mgr = FacultyMgr()

@@ -54,6 +54,10 @@ origins = [
     "https://bookish-guide-5g5p4jxvg7jwhpv76-3000.app.github.dev",
     "http://bookish-guide-5g5p4jxvg7jwhpv76-3001.app.github.dev",
     "https://bookish-guide-5g5p4jxvg7jwhpv76-3001.app.github.dev",
+    "https://crispy-space-funicular-wrxjpwrx94rw29467-3000.app.github.dev",
+    "http://crispy-space-funicular-wrxjpwrx94rw29467-3000.app.github.dev",
+    "https://crispy-space-funicular-wrxjpwrx94rw29467-3001.app.github.dev",
+    "http://crispy-space-funicular-wrxjpwrx94rw29467-3001.app.github.dev",
 ]
 
 db = DatabaseConnection()

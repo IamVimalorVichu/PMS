@@ -188,4 +188,5 @@ class AlumniMgr:
             return result.deleted_count > 0
         except Exception as e:
             raise Exception(f"Error deleting alumni record: {str(e)}")
-               
+        
+alumni_mgr = AlumniMgr()

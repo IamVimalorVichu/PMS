@@ -234,4 +234,6 @@ class StudentMgr:
             return result.deleted_count > 0
         except Exception as e:
             raise Exception(f"Error deleting student record: {str(e)}")
+
+student_mgr = StudentMgr()
                
