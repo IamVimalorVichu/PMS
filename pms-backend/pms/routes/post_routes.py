@@ -6,8 +6,6 @@ from pms.models.post import (
 )
 from pms.models.comment import CommentCreate, CommentRead
 from pms.models.user import User
-# Assuming you have these auth dependencies
-from pms.services.auth_services import get_current_active_user
 
 # Import the service managers
 from pms.services.post_services import post_mgr
@@ -18,17 +16,12 @@ router = APIRouter()
 # --- Post Endpoints ---
 
 @router.post("/posts", status_code=status.HTTP_201_CREATED)
-async def create_new_post(
-    post_data: PostCreate,
-    current_user: User = Depends(get_current_active_user)
-):
+async def create_new_post(post_data: PostCreate):
     """
     Creates a new post. Requires admin approval unless posted by an admin.
     """
     try:
-        # The service handles checking user's can_post permission
-        result = await post_mgr.create_post(post_data, current_user)
-        # Return the result dictionary from the service
+        result = await post_mgr.create_post(post_data)
         return result
     except HTTPException as he:
         raise he
@@ -39,26 +32,21 @@ async def create_new_post(
 @router.get("/posts", response_model=List[PostRead])
 async def list_posts(
     skip: int = 0,
-    limit: int = Query(default=10, le=50), # Limit results per page
-    # current_user: User = Depends(get_current_active_user) # Pass user to service for filtering
+    limit: int = Query(default=10, le=50)
 ):
     """
     Retrieves a list of approved posts. Admins see all posts.
     Sorted by creation date descending.
     """
     try:
-        # posts = await post_mgr.get_posts(skip=skip, limit=limit, current_user=current_user)
         posts = await post_mgr.get_posts(skip=skip, limit=limit)
-
         return posts
     except Exception as e:
         # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve posts.")
 
 @router.get("/posts/{post_id}", response_model=PostRead)
-async def get_single_post(
-    post_id: str,
-):
+async def get_single_post(post_id: str):
     """
     Retrieves a single post by its ID.
     Requires the post to be approved unless viewed by admin or author.
@@ -137,9 +125,7 @@ async def delete_a_comment(
 # --- Vote Endpoints ---
 
 @router.post("/posts/{post_id}/upvote", response_model=VoteResult)
-async def upvote_a_post(
-    post_id: str,
-):
+async def upvote_a_post(post_id: str):
     """
     Adds the current user's upvote to a post. Idempotent.
     Returns the new vote count and the user's vote status (true).
@@ -159,21 +145,18 @@ async def upvote_a_post(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upvote post.")
 
 @router.delete("/posts/{post_id}/upvote", response_model=VoteResult)
-async def remove_post_upvote(
-    post_id: str,
-    current_user: User = Depends(get_current_active_user)
-):
+async def remove_post_upvote(post_id: str):
     """
     Removes the current user's upvote from a post. Idempotent.
     Returns the new vote count and the user's vote status (false).
     """
     try:
         # Ensure post exists and is accessible first
-        post_accessible = await post_mgr.get_post_by_id(post_id, current_user)
+        post_accessible = await post_mgr.get_post_by_id(post_id)
         if not post_accessible:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
 
-        result = await post_mgr.remove_upvote(post_id, str(current_user.id))
+        result = await post_mgr.remove_upvote(post_id)
         return result
     except HTTPException as he:
         raise he
@@ -182,20 +165,17 @@ async def remove_post_upvote(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to remove upvote.")
 
 @router.get("/posts/{post_id}/vote-status", response_model=VoteStatus)
-async def get_my_vote_status_for_post(
-    post_id: str,
-    current_user: User = Depends(get_current_active_user)
-):
+async def get_vote_status_for_post(post_id: str):
     """
     Checks if the currently logged-in user has upvoted the specified post.
     """
     try:
         # Ensure post exists and is accessible first
-        post_accessible = await post_mgr.get_post_by_id(post_id, current_user)
+        post_accessible = await post_mgr.get_post_by_id(post_id)
         if not post_accessible:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
 
-        status = await post_mgr.get_user_vote_status(post_id, str(current_user.id))
+        status = await post_mgr.get_vote_status(post_id)
         return status
     except HTTPException as he:
         raise he

@@ -47,52 +47,47 @@ class PostMgr:
             # Log error ideally
             return None
 
-    async def create_post(self, post_data: PostCreate, current_user: User) -> Dict[str, Any]:
-        """Creates a new post, checking permissions and setting approval status."""
-        if not current_user.can_post:
-             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have permission to post.")
-
+    async def create_post(self, post_data: PostCreate) -> Dict[str, Any]:
+        """Creates a new post."""
         post_doc = post_data.model_dump(mode="json")
-        post_doc["author_id"] = str(current_user.id) # Assuming current_user has id populated
         post_doc["created_at"] = datetime.now()
         post_doc["upvoter_ids"] = []
         post_doc["comment_count"] = 0
-
-        # Auto-approve if posted by admin, otherwise requires approval
-        post_doc["is_approved"] = current_user.role == "admin"
+        post_doc["is_approved"] = False  # All posts require approval
 
         try:
             result = await self.posts_collection.insert_one(post_doc)
             inserted_id = str(result.inserted_id)
-            return {"status": "success", "message": f"Post created with id: {inserted_id}", "id": inserted_id, "is_approved": post_doc["is_approved"]}
+            return {
+                "status": "success",
+                "message": f"Post created with id: {inserted_id}",
+                "id": inserted_id,
+                "is_approved": post_doc["is_approved"]
+            }
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error creating post: {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                              detail=f"Error creating post: {str(e)}")
 
-    async def get_post_by_id(self, post_id: str, current_user: Optional[User] = None) -> Optional[PostRead]:
-        """Fetches a single post by ID, populating author info."""
+    async def get_post_by_id(self, post_id: str) -> Optional[PostRead]:
+        """Fetches a single post by ID."""
         try:
             post_doc = await self.posts_collection.find_one({"_id": ObjectId(post_id)})
             if not post_doc:
                 return None
 
-            # Check approval status unless user is admin or the author
-            is_author = current_user and str(post_doc.get("author_id")) == current_user.id
-            is_admin = current_user and current_user.role == "admin"
-
-            if not post_doc.get("is_approved", False) and not is_admin and not is_author:
-                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not approved.") # Treat as not found for non-admins
+            if not post_doc.get("is_approved", False):
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+                                  detail="Post not found or not approved.")
 
             post_doc["_id"] = str(post_doc["_id"])
             post_doc["upvote_count"] = len(post_doc.get("upvoter_ids", []))
             author_info = await self._get_author_basic_info(post_doc["author_id"])
             return PostRead(**post_doc, author=author_info)
-
         except Exception as e:
-            # Avoid raising HTTP exception here if just not found, let caller handle None
-             if "not found" in str(e).lower(): # Handle specific exceptions if needed
+            if "not found" in str(e).lower():
                 return None
-             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error fetching post: {str(e)}")
-
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                              detail=f"Error fetching post: {str(e)}")
 
     async def get_posts(self, skip: int = 0, limit: int = 10, current_user: Optional[User] = None) -> List[PostRead]:
         """Fetches a list of posts, filtering by approval status for non-admins."""

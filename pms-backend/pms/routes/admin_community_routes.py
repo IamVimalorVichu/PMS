@@ -1,16 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
+from fastapi import APIRouter, HTTPException, status, Query, Body
 from typing import List, Optional
 
 from pms.models.post import PostRead
 from pms.models.report import ReportRead, ReportUpdate
-from pms.models.user import User, UserUpdate # Need UserUpdate for permissions
-# Assuming an admin-specific dependency
-from pms.services.auth_services import get_current_admin_user
+from pms.models.user import User, UserUpdate
 
-# Import relevant service managers
 from pms.services.post_services import post_mgr
 from pms.services.report_services import report_mgr
-from pms.services.user_services import user_mgr # Need user_mgr for permissions
+from pms.services.user_services import user_mgr
 
 router = APIRouter()
 
@@ -19,8 +16,7 @@ router = APIRouter()
 @router.get("/posts/pending", response_model=List[PostRead])
 async def get_pending_approval_posts(
     skip: int = 0,
-    limit: int = Query(default=20, le=100),
-    current_admin: User = Depends(get_current_admin_user) # Dependency ensures admin role
+    limit: int = Query(default=20, le=100)
 ):
     """
     Retrieves posts that are awaiting admin approval.
@@ -34,8 +30,7 @@ async def get_pending_approval_posts(
 
 @router.post("/posts/{post_id}/approve", status_code=status.HTTP_200_OK)
 async def approve_a_post(
-    post_id: str,
-    current_admin: User = Depends(get_current_admin_user)
+    post_id: str
 ):
     """
     Approves a pending post.
@@ -51,8 +46,7 @@ async def approve_a_post(
 
 @router.delete("/posts/{post_id}/reject", status_code=status.HTTP_200_OK)
 async def reject_a_post(
-    post_id: str,
-    current_admin: User = Depends(get_current_admin_user)
+    post_id: str
 ):
     """
     Rejects (deletes) a pending post.
@@ -72,8 +66,7 @@ async def reject_a_post(
 async def get_submitted_reports(
     status_filter: Optional[str] = Query(default="pending", enum=["pending", "resolved", "dismissed"]),
     skip: int = 0,
-    limit: int = Query(default=20, le=100),
-    current_admin: User = Depends(get_current_admin_user)
+    limit: int = Query(default=20, le=100)
 ):
     """
     Retrieves reports submitted by users, filterable by status.
@@ -89,8 +82,7 @@ async def get_submitted_reports(
 @router.post("/reports/{report_id}/resolve", status_code=status.HTTP_200_OK)
 async def resolve_a_report(
     report_id: str,
-    update_data: ReportUpdate, # Contains the new status
-    current_admin: User = Depends(get_current_admin_user)
+    update_data: ReportUpdate
 ):
     """
     Updates the status of a report (e.g., to 'resolved' or 'dismissed').
@@ -109,16 +101,13 @@ async def resolve_a_report(
 @router.patch("/users/{user_id}/permissions", response_model=User) # Return updated user
 async def update_user_community_permissions(
     user_id: str,
-    # Use UserUpdate model, but only care about can_post/can_comment
-    permissions: UserUpdate = Body(..., embed=True), # Embed ensures {"permissions": {"can_post": false}} structure
-    current_admin: User = Depends(get_current_admin_user)
+    permissions: UserUpdate = Body(..., embed=True)
 ):
     """
     Updates a user's permission to post or comment in the community.
     Expects body like: {"permissions": {"can_post": false, "can_comment": true}}
     Only updates fields provided (can_post, can_comment).
     """
-    # Ensure we only process relevant fields
     update_data = UserUpdate(
         can_post=permissions.can_post,
         can_comment=permissions.can_comment
@@ -129,7 +118,6 @@ async def update_user_community_permissions(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid permission fields provided (can_post, can_comment).")
 
     try:
-        # Assuming user_mgr has an 'update_user' method that handles partial updates
         updated_user = await user_mgr.update_user(user_id, UserUpdate(**update_dict))
         return updated_user
     except HTTPException as he:

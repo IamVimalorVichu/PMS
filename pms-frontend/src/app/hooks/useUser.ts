@@ -16,6 +16,7 @@ const useCurrentUser = () => {
 
   useEffect(() => {
     const token = Cookies.get('access_token');
+    console.log('Token:', token);
 
     if (token) {
       try {

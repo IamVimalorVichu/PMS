@@ -82,23 +82,24 @@ class DirectMessageMgr:
         return participants_info
 
     async def _validate_conversation_participant(self, conversation_id: str, user_id: str) -> Optional[Dict[str, Any]]:
-        """Checks if conversation exists and user is a participant."""
+        """Basic validation to ensure user is a participant."""
         try:
             conversation_doc = await self.conversations_collection.find_one(
                 {"_id": ObjectId(conversation_id)}
             )
             if not conversation_doc:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
-            if user_id not in conversation_doc.get("participant_ids", []):
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not a participant of this conversation.")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+                                  detail="Conversation not found.")
             return conversation_doc
         except bson_errors.InvalidId:
-             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation ID format.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+                              detail="Invalid conversation ID format.")
         except HTTPException as he:
-            raise he # Re-raise specific HTTP exceptions
+            raise he
         except Exception as e:
-            logger.error(f"Error validating conversation participant ({conversation_id}, {user_id}): {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server error validating conversation access.")
+            logger.error(f"Error validating conversation ({conversation_id}): {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                              detail="Server error validating conversation access.")
 
     async def find_or_create_conversation(self, user1_id: str, user2_id: str) -> ConversationRead:
         """

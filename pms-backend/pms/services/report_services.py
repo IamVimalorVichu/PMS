@@ -45,25 +45,23 @@ class ReportMgr:
         except Exception:
             return None
 
-    async def create_report(self, report_data: ReportCreate, current_user: User) -> Dict[str, Any]:
-        """Creates a new report submitted by a user."""
+    async def create_report(self, report_data: ReportCreate) -> Dict[str, Any]:
+        """Creates a new report."""
         report_doc = report_data.model_dump()
-        report_doc["reporter_id"] = str(current_user.id)
         report_doc["created_at"] = datetime.utcnow()
-        report_doc["status"] = "pending" # Default status
-
-        # Basic validation: Check if the reported item exists? (Optional, adds complexity)
-        # item_collection = post_mgr.posts_collection if report_data.item_type == 'post' else comment_mgr.comments_collection
-        # item_exists = await item_collection.find_one({"_id": ObjectId(report_data.reported_item_id)}, {"_id": 1})
-        # if not item_exists:
-        #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{report_data.item_type.capitalize()} to report not found.")
+        report_doc["status"] = "pending"
 
         try:
             result = await self.reports_collection.insert_one(report_doc)
             inserted_id = str(result.inserted_id)
-            return {"status": "success", "message": f"Report submitted successfully with id: {inserted_id}", "id": inserted_id}
+            return {
+                "status": "success", 
+                "message": f"Report submitted successfully with id: {inserted_id}", 
+                "id": inserted_id
+            }
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error creating report: {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                              detail=f"Error creating report: {str(e)}")
 
     # --- Admin Functions ---
 
