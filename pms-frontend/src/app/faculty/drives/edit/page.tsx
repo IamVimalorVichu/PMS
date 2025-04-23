@@ -203,7 +203,7 @@ export default function Edit() {
               {/* Edit/Preview Switch */}
               <Switch
                 isSelected={isEditMode}
-                size="sm"
+                size="lg"
                 color="primary"
                 thumbIcon={({ isSelected }) => isSelected ? "Edit" : "Preview" }
                 onValueChange={setIsEditMode}
@@ -268,13 +268,13 @@ export default function Edit() {
             }}
           >
             <Tab key="general" title="General Details">
-              <GeneralDetailsTab {...generalDetailsProps} />
+              <GeneralDetailsTab {...generalDetailsProps} isPreviewMode={!isEditMode} />
             </Tab>
             <Tab key="Companies" title="Company Details">
-              <CompanyDetailsTab {...companyDetailsProps} />
+              <CompanyDetailsTab {...companyDetailsProps} isPreviewMode={!isEditMode} />
             </Tab>
             <Tab key="Jobs" title="Job Details">
-              <JobDetailsTab {...jobDetailsProps} />
+              <JobDetailsTab {...jobDetailsProps} isPreviewMode={!isEditMode} />
             </Tab>
             <Tab key="FormTemplate" title="Form Template">
               <DriveFormTemplate 
@@ -301,6 +301,7 @@ export default function Edit() {
                       // For example, switch back to another tab
                       setSelectedState("general");
                   }}
+                  isPreviewMode={!isEditMode}
               />
             </Tab>
           </Tabs>

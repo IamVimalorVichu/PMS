@@ -1,6 +1,7 @@
 // CompanyDetailsTab.tsx
 import { Accordion, AccordionItem, Input, Button, Card, CardBody, Progress, Textarea } from "@heroui/react";
 import { Company } from "./types";
+import {PreviewModeWrapper, ReadOnlyField} from "./PreviewModeWrapper";
 
 interface CompanyDetailsTabProps {
     drive_companies: Company[];
@@ -22,6 +23,7 @@ interface CompanyDetailsTabProps {
     setPhNo: (value: string) => void;
     desc: string;
     setCompanyDesc: (value: string) => void;
+    isPreviewMode?: boolean;
 }
 
 export default function CompanyDetailsTab({ 
@@ -37,8 +39,36 @@ export default function CompanyDetailsTab({
     setEmail,
     setPhNo,
     setCompanyDesc,
+    isPreviewMode = false,
 }: CompanyDetailsTabProps) 
 {
+    if (isPreviewMode) {
+        return (
+            <PreviewModeWrapper>
+                {drive_companies.map((company) => (
+                    <div key={company._id} className="mb-8 bg-white p-6 rounded-lg border">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-semibold">{company.name}</h3>
+                            <div className="w-40">
+                                <Progress 
+                                    value={companyProgressList.find(p => p.id === company._id)?.progress || 0}
+                                    className="h-2"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <ReadOnlyField label="Branch" value={company.branch} />
+                            <ReadOnlyField label="Website" value={company.site} />
+                            <ReadOnlyField label="Email" value={company.email} />
+                            <ReadOnlyField label="Phone" value={company.ph_no} />
+                        </div>
+                        <ReadOnlyField label="Description" value={company.desc} />
+                    </div>
+                ))}
+            </PreviewModeWrapper>
+        );
+    }
+
     return (
         <Card className="w-full max-w-4xl p-6 shadow-lg">
             <CardBody className="flex flex-col gap-6">

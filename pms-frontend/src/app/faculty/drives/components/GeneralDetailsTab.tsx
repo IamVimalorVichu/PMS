@@ -1,9 +1,11 @@
 // GeneralDetailsTab.tsx
 import React from "react"; // Import React
 import { Input, Button, Card, CardBody, Progress, Textarea } from "@heroui/react"; // Assuming these imports are correct
+import { PreviewModeWrapper, ReadOnlyField } from "./PreviewModeWrapper";
 
 interface GeneralDetailsTabProps {
     isUpdateMode: boolean; // Use a boolean flag instead of checking drive object directly
+    isPreviewMode?: boolean; // Add isPreviewMode to props
     title: string;
     setTitle: (value: string) => void;
     location: string;
@@ -36,6 +38,7 @@ const formatDateForInput = (date: Date | null): string => {
 
 export default function GeneralDetailsTab({
     isUpdateMode,
+    isPreviewMode = false, // Add isPreviewMode with default value
     title, setTitle,
     location, setLocation,
     desc, setDesc,
@@ -48,6 +51,41 @@ export default function GeneralDetailsTab({
     driveProgress,
     form_link, setFormLink,
 }: GeneralDetailsTabProps) {
+
+    if (isPreviewMode) {
+        return (
+            <PreviewModeWrapper>
+                <div className="space-y-6">
+                    <ReadOnlyField label="Title" value={title} />
+                    <ReadOnlyField label="Description" value={desc} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <ReadOnlyField label="Location" value={location} />
+                        <ReadOnlyField 
+                            label="Drive Date" 
+                            value={drive_date ? new Date(drive_date).toLocaleDateString() : '-'} 
+                        />
+                        <ReadOnlyField 
+                            label="Application Deadline" 
+                            value={application_deadline ? new Date(application_deadline).toLocaleDateString() : '-'} 
+                        />
+                        <ReadOnlyField label="Form Link" value={form_link || '-'} />
+                    </div>
+                    <ReadOnlyField label="Additional Instructions" value={additional_instructions} />
+                    
+                    <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-4">Recruitment Stages</h3>
+                        <div className="space-y-2">
+                            {stages.map((stage, index) => (
+                                <div key={index} className="bg-white p-3 rounded border">
+                                    {index + 1}. {stage}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </PreviewModeWrapper>
+        );
+    }
 
     // Handler for stage input changes
     const handleStageChange = (index: number, value: string) => {
