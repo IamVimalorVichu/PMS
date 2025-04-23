@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@heroui/react";
 import { useViewEligibleStudentsManagement } from './useViewEligibleStudentsManagement'; // Adjust path
 import { Student } from '@/app/students/components/types'; // Assuming Student type is here
+import { ApplicationAndResumeModal } from '@/app/students/components/ApplicationAndResumeModal'; // New import
 
 // --- REMOVE onSaveChanges from Props ---
 interface ViewEligibleStudentsModalProps {
@@ -83,19 +84,20 @@ export default function ViewEligibleStudentsModal({
         if (activeJobId) {
             return (
                 <div>
-                    {/* Dropdown to add students */}
                     <AddStudentDropdownView
                         students={availableToAddStudents}
                         onAddStudent={handleAddStudent}
-                        isLoading={isFetchingData} // Disable dropdown while fetching initial data
-                        appliedStudentsSet={appliedStudentsSet} // Pass applied set to disable adding applied students
+                        isLoading={isFetchingData}
+                        appliedStudentsSet={appliedStudentsSet}
                     />
 
-                    {/* List of currently eligible students */}
                     <StudentListView
                         students={currentDisplayedStudents}
                         onRemoveStudent={handleRemoveStudent}
-                        appliedStudentsSet={appliedStudentsSet} // Pass applied set to disable removing applied students
+                        appliedStudentsSet={appliedStudentsSet}
+                        jobId={activeJobId}
+                        driveId={driveId || ''}
+                        jobTitle={jobs.find(job => job._id === activeJobId)?.title || 'Job'}
                     />
                 </div>
             );
@@ -174,18 +176,37 @@ interface StudentListViewProps {
     students: Student[];
     onRemoveStudent: (studentId: string) => void;
     appliedStudentsSet: Set<string>; // Set of IDs who have applied
+    jobId: string; // Add this
+    driveId: string; // Add this
+    jobTitle: string; // Add this
 }
 
-const StudentListView: React.FC<StudentListViewProps> = ({ students, onRemoveStudent, appliedStudentsSet }) => {
+const StudentListView: React.FC<StudentListViewProps> = ({ 
+    students, 
+    onRemoveStudent, 
+    appliedStudentsSet,
+    jobId,
+    driveId,
+    jobTitle
+}) => {
+    // Add state for modal
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
     return (
         <div className="mt-4 border rounded max-h-96 overflow-y-auto">
             {students.length === 0 && <p className="p-3 text-gray-500">No eligible students currently selected for this job.</p>}
             {students.map((student, index) => {
                 const hasApplied = appliedStudentsSet.has(student._id);
                 return (
-                    <div key={student._id} className={`p-3 ${index < students.length - 1 ? 'border-b' : ''} ${hasApplied ? 'bg-gray-100 opacity-70' : ''}`}>
+                    <div 
+                        key={student._id} 
+                        className={`p-3 ${index < students.length - 1 ? 'border-b' : ''} 
+                            ${hasApplied ? 'bg-gray-100 opacity-70' : ''} 
+                            cursor-pointer hover:bg-gray-50`} // Add cursor-pointer and hover effect
+                        onClick={() => hasApplied && setSelectedStudent(student)} // Only allow click if student has applied
+                    >
                         <div className="flex justify-between items-center">
-                            {/* Student Details */}
+                            {/* Existing student details */}
                             <div className="flex-grow mr-4">
                                 <span className="font-medium block">{student.first_name} {student.last_name}</span>
                                 <div className="text-sm text-gray-600">
@@ -194,14 +215,17 @@ const StudentListView: React.FC<StudentListViewProps> = ({ students, onRemoveStu
                                     <span>Program: {student.program || 'N/A'}</span>
                                 </div>
                             </div>
-                            {/* Remove Button (Disabled if applied) */}
+                            {/* Existing Remove Button */}
                             <Button
                                 size="sm"
                                 variant="light"
                                 color="danger"
-                                onPress={() => onRemoveStudent(student._id)}
+                                onPress={(e:unknown) => {
+                                    (e as React.MouseEvent).stopPropagation(); // Prevent row click when clicking button
+                                    onRemoveStudent(student._id);
+                                }}
                                 className="ml-2 flex-shrink-0"
-                                isDisabled={hasApplied} // Disable button if student applied
+                                isDisabled={hasApplied}
                                 title={hasApplied ? "Cannot remove student who has applied" : "Remove student"}
                             >
                                 {hasApplied ? "Applied" : "Remove"}
@@ -210,6 +234,18 @@ const StudentListView: React.FC<StudentListViewProps> = ({ students, onRemoveStu
                     </div>
                 );
             })}
+
+            {/* Add ApplicationAndResumeModal */}
+            {selectedStudent && (
+                <ApplicationAndResumeModal
+                    isOpen={!!selectedStudent}
+                    onClose={() => setSelectedStudent(null)}
+                    driveId={driveId}
+                    jobId={jobId}
+                    studentId={selectedStudent._id}
+                    jobTitle={jobTitle}
+                />
+            )}
         </div>
     );
 };

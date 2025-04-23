@@ -4,11 +4,13 @@ import { Switch, Button, Input, Card, CardBody, CardHeader, CardFooter, Listbox,
 import { DriveForm } from './types'; // Adjust path
 import { useDriveFormManagement } from './useDriveFormManagement'; // Adjust path
 import { MdDelete } from 'react-icons/md';
+import { PreviewModeWrapper } from './PreviewModeWrapper';
 
 interface DriveFormTemplateProps {
     driveId: string | null;
     onSaveSuccess?: (updatedTemplate: DriveForm) => void;
     onCancel?: () => void;
+    isPreviewMode?: boolean;
 }
 
 // Helper labels (can be defined here or imported)
@@ -31,7 +33,8 @@ const performanceFieldKeys = Object.keys(standardFieldLabels).filter(k => !stude
 export default function DriveFormTemplate({
     driveId,
     onSaveSuccess,
-    onCancel
+    onCancel,
+    isPreviewMode = false
 }: DriveFormTemplateProps) {
 
     // Use the custom hook to manage state and logic
@@ -77,6 +80,50 @@ export default function DriveFormTemplate({
 
     if (!driveId) {
          return <div className="p-4 text-center text-gray-500">Please select a drive first.</div>;
+    }
+
+    if (isPreviewMode) {
+        return (
+            <PreviewModeWrapper>
+                <div className="space-y-6">
+                    {/* Standard Fields Section */}
+                    <section>
+                        <h3 className="text-lg font-semibold mb-4">Standard Fields</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {Object.entries(standardFieldLabels).map(([key, label]) => (
+                                <div key={key} 
+                                    className={`p-3 rounded border ${
+                                        templateFlags?.[key] ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                                    }`}>
+                                    <div className="flex items-center gap-2">
+                                        <span className={templateFlags?.[key] ? 'text-green-600' : 'text-gray-400'}>
+                                            {templateFlags?.[key] ? '✓' : '✕'}
+                                        </span>
+                                        <span className={templateFlags?.[key] ? 'text-gray-900' : 'text-gray-500'}>
+                                            {label}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Custom Fields Section */}
+                    {additionalLabels && additionalLabels.length > 0 && (
+                        <section>
+                            <h3 className="text-lg font-semibold mb-4">Custom Fields</h3>
+                            <div className="space-y-2">
+                                {additionalLabels.map((label, index) => (
+                                    <div key={index} className="p-3 bg-blue-50 border border-blue-200 rounded">
+                                        {label}
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+                </div>
+            </PreviewModeWrapper>
+        );
     }
 
     return (

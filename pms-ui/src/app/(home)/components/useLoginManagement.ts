@@ -3,7 +3,7 @@
 
 import { useState, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "../../../../node_modules/@types/js-cookie";
+import Cookies from "js-cookie";
 import { toast } from "react-toastify";
 import { loginUserAPI } from "./API";
 
@@ -16,12 +16,12 @@ import { loginUserAPI } from "./API";
 type UserRole = "faculty" | "student" | "admin" | "alumni" | string; // Allow string for potential future roles
 // type UserStatus = "Active" | "Inactive";
 
-class ApiError extends Error {
-constructor(message: string, public statusCode?: number) {
-  super(message);
-  this.name = 'ApiError';
-}
-}
+// class ApiError extends Error {
+// constructor(message: string, public statusCode?: number) {
+//   super(message);
+//   this.name = 'ApiError';
+// }
+// }
 
 // --- Constants ---
 const COOKIE_NAME = 'access_token';

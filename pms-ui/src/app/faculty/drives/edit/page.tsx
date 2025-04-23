@@ -166,7 +166,6 @@ export default function Edit() {
         onClose: modalHandlers.viewEligibleStudents.close,
         driveId: drive_id,
         driveName: title,
-        // onSaveChanges prop removed as logic is in hook
     };
 
     // *** ADD Props for Drive Status Modal ***

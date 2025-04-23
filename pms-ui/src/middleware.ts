@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { toast } from 'react-toastify';
 import { User } from './app/hooks/useUser';
 import { jwtDecode } from 'jwt-decode';
 
-import { decode } from 'punycode';
 
 export function middleware(req: NextRequest) {
 
@@ -20,7 +18,7 @@ export function middleware(req: NextRequest) {
 
     const decodedUser = jwtDecode<User>(token);
     if(decodedUser.role === 'admin') {
-        if(url.pathname.startsWith('/faculty') || url.pathname.startsWith('/students') || url.pathname.startsWith('/alumni')) {
+        if(url.pathname.startsWith('/students') || url.pathname.startsWith('/alumni')) {
             const url = new URL("/",req.nextUrl.origin);
             url.searchParams.set('toast', 'You are logged in as admin');
             return NextResponse.redirect(url);
