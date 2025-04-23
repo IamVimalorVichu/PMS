@@ -7,7 +7,7 @@ import {
 } from "@heroui/react";
 import React from 'react';
 import { FaHandshake } from "react-icons/fa6";
-import Cookies from 'js-cookie';
+import Cookies from '../../../../node_modules/@types/js-cookie';
 import { useRouter } from 'next/navigation';
 
 const NavBar = () => {

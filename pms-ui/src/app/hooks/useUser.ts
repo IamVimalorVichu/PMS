@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import Cookies from 'js-cookie';
+import Cookies from '../../../node_modules/@types/js-cookie';
 
 export interface User {
   _id: string;

@@ -1,5 +1,5 @@
 // app/community/services/postAPI.ts
-import Cookies from 'js-cookie';
+import Cookies from '../../../../node_modules/@types/js-cookie';
 import { Post } from '@/app/community/types/post'; // Adjust path as needed
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;

@@ -3,7 +3,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import Cookies from 'js-cookie';
+import Cookies from '../../../../node_modules/@types/js-cookie';
 import { User } from '@/components/types/types'; // Import the *full* User type
 import { fetchUserProfileAPI } from './userAPI'; // Import the new API function
 

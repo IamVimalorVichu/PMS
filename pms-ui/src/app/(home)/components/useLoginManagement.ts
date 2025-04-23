@@ -3,7 +3,7 @@
 
 import { useState, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
+import Cookies from "../../../../node_modules/@types/js-cookie";
 import { toast } from "react-toastify";
 import { loginUserAPI } from "./API";
 
