@@ -3,6 +3,7 @@ import { fetchPostsAPI } from '@/app/community/services/postAPI'; // Adjust path
 import { PostPreview } from '@/app/community/components/posts/PostPreview'; // Adjust path
 import Link from 'next/link'; // For the Create Post button
 import { Post } from '@/app/community/types/post'; // Adjust path as needed
+import { Button } from '@heroui/react';
 
 // This is a Server Component by default in App Router
 export default async function CommunityFeedPage() {
@@ -23,9 +24,9 @@ export default async function CommunityFeedPage() {
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Community Feed</h1>
         {/* Add a button to navigate to the create post page (Phase 2) */}
         <Link href="/community/create">
-           <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-150 ease-in-out">
+             <Button color='secondary' variant='faded' onPress={() => window.location.href = '/community/create'}>
              Create Post
-           </button>
+             </Button>
         </Link>
       </div>
 

@@ -42,10 +42,22 @@ export interface UserBasicInfo {
     new_count: number;
     voted: boolean;
   }
+   
+  // --- New Type for Creating Posts ---
   
-  // Optional: Define a specific type for the data needed by PostPreview
-  // This can be useful if PostPreview only needs a subset of Post fields.
-  // For simplicity now, PostPreview will just use the full Post type.
-  // export interface PostPreviewData extends Pick<Post, 'id' | 'title' | 'created_at' | 'comment_count' | 'upvoter_ids'> {
-  //   author?: Pick<UserBasicInfo, 'user_name'>;
-  // }
+  // Matches the backend Pydantic PostCreate schema
+  export interface PostCreate {
+    title: string;
+    content?: string | null; // Allow null if backend handles it, otherwise just optional string
+    post_type: 'text' | 'link' | 'media';
+    url?: string | null; // Allow null or make optional string
+    media_url?: string | null; // Allow null or make optional string
+  }
+
+
+  export interface PostCreateResponse {
+    status: "success" | "error";
+    message: string;
+    id: string;
+    is_approved: boolean;
+  }

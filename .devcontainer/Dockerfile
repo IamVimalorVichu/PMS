@@ -6,12 +6,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Set up Python environment using pip3
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+RUN python3 -m venv /opt/pms-core/pms_venv
+ENV PATH="/opt/pms-core/pms_venv/bin:$PATH"
 
 # Copy requirements and install dependencies with pip3
-COPY ./pms-backend/requirements.txt /tmp/requirements.txt
-COPY ./pms-backend/optional-requirements.txt /tmp/optional-requirements.txt
+COPY ./pms-core/requirements.txt /tmp/requirements.txt
+COPY ./pms-core/optional-requirements.txt /tmp/optional-requirements.txt
 
 RUN pip3 install --upgrade pip && \
     pip3 install -r /tmp/requirements.txt && \
