@@ -24,9 +24,9 @@ export default async function CommunityFeedPage() {
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Community Feed</h1>
         {/* Add a button to navigate to the create post page (Phase 2) */}
         <Link href="/community/create">
-             <Button color='secondary' variant='faded' onPress={() => window.location.href = '/community/create'}>
-             Create Post
-             </Button>
+          <Button color='secondary' variant='faded'>
+            Create Post
+          </Button>
         </Link>
       </div>
 

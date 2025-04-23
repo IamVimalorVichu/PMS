@@ -3,7 +3,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import Cookies from '../../../../node_modules/@types/js-cookie';
+import Cookies from 'js-cookie';
 import { User } from '@/components/types/types'; // Import the *full* User type
 import { fetchUserProfileAPI } from './userAPI'; // Import the new API function
 
@@ -47,23 +47,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 1. Effect for initial token decoding
   useEffect(() => {
     const token = Cookies.get('access_token');
+    console.log('Token check:', token ? 'exists' : 'missing');
     setIsLoadingToken(true);
-    setTokenUser(null); // Reset on check
-    setFullUser(null);  // Reset on check
-
+    
     if (token) {
-      try {
-        // Ensure your token actually has '_id', 'role' etc. defined in DecodedTokenUser
-        const decoded = jwtDecode<DecodedTokenUser>(token);
-        setTokenUser(decoded);
-      } catch (error) {
-        console.error('Error decoding access token:', error);
-        // Invalid token, clear cookie? Or let it expire naturally.
-        Cookies.remove('access_token');
-        setTokenUser(null);
-      }
-    } else {
-      setTokenUser(null);
+        try {
+            const decoded = jwtDecode<DecodedTokenUser>(token);
+            console.log('Token decoded:', decoded);
+            setTokenUser(decoded);
+        } catch (error) {
+            console.error('Token decode error:', error);
+            Cookies.remove('access_token');
+            setTokenUser(null);
+        }
     }
     setIsLoadingToken(false);
   }, []); // Runs only on mount

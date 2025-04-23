@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from fastapi import HTTPException, status
 from pymongo import ReturnDocument
+import pymongo
 
 from pms.db.database import DatabaseConnection
 from pms.models.post import PostCreate, Post, PostRead, VoteResult, VoteStatus
@@ -105,6 +106,27 @@ class PostMgr:
                 author_info = await self._get_author_basic_info(post_doc["author_id"])
                 posts.append(PostRead(**post_doc, author=author_info))
             return posts
+        except HTTPException as http_exc:
+            # Re-raise HTTP exceptions as they are
+            raise http_exc
+        except ValueError as val_err:
+            # Handle value errors, such as invalid ObjectId
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid input: {str(val_err)}")
+        except TypeError as type_err:
+            # Handle type errors, such as unexpected data types
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Type error: {str(type_err)}")
+        except KeyError as key_err:
+            # Handle missing keys in data
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing key: {str(key_err)}")
+        except AttributeError as attr_err:
+            # Handle attribute errors, such as NoneType issues
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Attribute error: {str(attr_err)}")
+        except pymongo.errors.PyMongoError as pymongo_err:
+            # Handle MongoDB-specific errors
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error: {str(pymongo_err)}")
+        except Exception as e:
+            # Catch-all for any other exceptions
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Unexpected error: {str(e)}")
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error fetching posts: {str(e)}")
 

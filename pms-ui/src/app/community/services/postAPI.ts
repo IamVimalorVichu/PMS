@@ -1,6 +1,8 @@
 // app/community/services/postAPI.ts
-import Cookies from '../../../../node_modules/@types/js-cookie';
-import { Post, PostCreate, PostCreateResponse } from '@/app/community/types/post'; // Adjust path as needed
+import Cookies from 'js-cookie';
+import { Post, PostCreate, VoteResultCorrected, VoteStatus } from '@/app/community/types/post'; // Adjust path as needed
+import { APIResponse } from '@/app/community/types/api'; // Adjust path as needed
+import { Comment, CommentCreate } from '../types/comment';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const COMMUNITY_ENDPOINT = "/community"; // Base for community routes
@@ -83,7 +85,7 @@ export const fetchPostByIdAPI = async (postId: string): Promise<Post> => {
   return post;
 };
 
-export const createPostAPI = async (postData: PostCreate): Promise<PostCreateResponse> => { // Return type 'any' for now, adjust based on actual backend response
+export const createPostAPI = async (postData: PostCreate): Promise<APIResponse> => { // Return type 'any' for now, adjust based on actual backend response
   const token = Cookies.get('access_token');
 
   if (!token) {
@@ -143,4 +145,251 @@ export const createPostAPI = async (postData: PostCreate): Promise<PostCreateRes
   const result = await response.json();
   console.log("Post creation successful:", result); // Debug log
   return result; // Return the success response body
+};
+
+
+export const fetchCommentsForPostAPI = async (postId: string, skip: number = 0, limit: number = 20): Promise<Comment[]> => {
+  if (!postId) {
+    throw new Error("Post ID is required to fetch comments.");
+  }
+  const token = Cookies.get('access_token'); // Needed even for GET if post access depends on auth
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts/${postId}/comments?skip=${skip}&limit=${limit}`;
+  console.log(`Fetching comments from: ${url}`); // Debug log
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: headers,
+    cache: 'no-store', // Fetch fresh comments
+  });
+
+  if (!response.ok) {
+    // Handle cases where the post itself might not be found or accessible (backend might return 404)
+    let errorDetail = `Failed to fetch comments for post ${postId} (Status: ${response.status})`;
+    try {
+      const errorData = await response.json();
+      errorDetail = errorData.detail || errorDetail;
+    } catch { /* Ignore */ }
+    console.error("fetchCommentsForPostAPI error:", errorDetail);
+    throw new Error(errorDetail);
+  }
+
+  const comments: Comment[] = await response.json();
+  console.log(`Fetched ${comments.length} comments for post ${postId}.`); // Debug log
+  return comments;
+};
+
+/**
+ * Creates a new comment on a specific post. Requires authentication.
+ */
+export const createCommentAPI = async (postId: string, commentData: CommentCreate, userId: string): Promise<Comment> => {
+  if (!postId) {
+    throw new Error("Post ID is required to create a comment.");
+  }
+  if (!commentData.content || !commentData.content.trim()) {
+      throw new Error("Comment content cannot be empty.");
+  }
+  if (!userId) {
+    throw new Error("User ID is required to create a comment.");
+  }
+
+  const token = Cookies.get('access_token');
+  if (!token) {
+    throw new Error('Authentication required to comment.');
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts/${postId}/comments/${userId}`;
+  console.log(`Creating comment at: ${url}`); // Debug log
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(commentData),
+  });
+
+  if (!response.ok) {
+    let errorDetail = `Failed to create comment (Status: ${response.status})`;
+    try {
+      const errorData = await response.json();
+       if (response.status === 403) { // Specific check for permission denied
+           errorDetail = errorData.detail || "You do not have permission to comment.";
+       } else if (response.status === 422 && errorData.detail) {
+           errorDetail = `Validation Error: ${JSON.stringify(errorData.detail)}`;
+       } else {
+           errorDetail = errorData.detail || errorDetail;
+       }
+    } catch { /* Ignore */ }
+    console.error("createCommentAPI error:", errorDetail);
+    const error = new Error(errorDetail);
+    // (error as APIResponse).status = response.status;
+    throw error;
+  }
+
+  // Backend should return the created comment object including author info
+  const createdComment: Comment = await response.json();
+  console.log("Comment creation successful:", createdComment); // Debug log
+  return createdComment;
+};
+
+/**
+ * Deletes a specific comment. Requires authentication (author or admin).
+ */
+export const deleteCommentAPI = async (commentId: string, userId: string): Promise<APIResponse> => { // Return type 'any' for success message
+   if (!commentId) {
+    throw new Error("Comment ID is required to delete.");
+  }
+  if (!userId) {
+    throw new Error("User ID is required to delete a comment.");
+  }
+  const token = Cookies.get('access_token');
+  if (!token) {
+    throw new Error('Authentication required to delete a comment.');
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/comments/${commentId}/${userId}`;
+  console.log(`Deleting comment at: ${url}`); // Debug log
+
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    let errorDetail = `Failed to delete comment ${commentId} (Status: ${response.status})`;
+    try {
+      const errorData = await response.json();
+       if (response.status === 403) { // Specific check for permission denied
+           errorDetail = errorData.detail || "You do not have permission to delete this comment.";
+       } else {
+           errorDetail = errorData.detail || errorDetail;
+       }
+    } catch { /* Ignore */ }
+    console.error("deleteCommentAPI error:", errorDetail);
+     const error = new Error(errorDetail);
+    // (error as unknown).status = response.status;
+    throw error;
+  }
+
+  // Expecting a success message like {"status": "success", "message": "..."}
+  const result = await response.json();
+  console.log("Comment deletion successful:", result); // Debug log
+  return result;
+};
+
+
+/**
+ * Upvotes a specific post. Requires authentication.
+ */
+export const upvotePostAPI = async (postId: string, userId: string): Promise<VoteResultCorrected> => {
+  if (!postId) throw new Error("Post ID is required to upvote.");
+  const token = Cookies.get('access_token');
+  if (!token) throw new Error('Authentication required to upvote.');
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts/${postId}/upvote/${userId}`; // Same URL, different method
+  console.log(`Upvoting post at: ${url}`); // Debug log
+
+  const response = await fetch(url, { method: 'POST', headers: headers });
+
+  if (!response.ok) {
+    let errorDetail = `Failed to upvote post ${postId} (Status: ${response.status})`;
+    try { const errorData = await response.json(); errorDetail = errorData.detail || errorDetail; } 
+    catch { /* Ignore */ }
+    console.error("upvotePostAPI error:", errorDetail);
+    const error = new Error(errorDetail); 
+    throw error;
+  }
+
+  const result: VoteResultCorrected = await response.json();
+  console.log("Upvote successful:", result); // Debug log
+  return result;
+};
+
+/**
+ * Removes an upvote from a specific post. Requires authentication.
+ */
+export const removeUpvoteAPI = async (postId: string, userId: string): Promise<VoteResultCorrected> => {
+  if (!postId) throw new Error("Post ID is required to remove upvote.");
+  const token = Cookies.get('access_token');
+  if (!token) throw new Error('Authentication required to remove upvote.');
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts/${postId}/upvote/${userId}`; // Same URL, different method
+  console.log(`Removing upvote at: ${url}`); // Debug log
+
+  const response = await fetch(url, { method: 'DELETE', headers: headers });
+
+  if (!response.ok) {
+    let errorDetail = `Failed to remove upvote for post ${postId} (Status: ${response.status})`;
+    try { const errorData = await response.json(); errorDetail = errorData.detail || errorDetail; } 
+    catch { /* Ignore */ }
+    console.error("removeUpvoteAPI error:", errorDetail);
+    const error = new Error(errorDetail);
+    throw error;
+  }
+
+  const result: VoteResultCorrected = await response.json();
+  console.log("Remove upvote successful:", result); // Debug log
+  return result;
+};
+
+/**
+ * Fetches the current user's vote status for a specific post. Requires authentication.
+ */
+export const fetchVoteStatusAPI = async (postId: string, userId: string): Promise<VoteStatus> => {
+  if (!postId) throw new Error("Post ID is required to check vote status.");
+  if (!userId) throw new Error("User ID is required to check vote status.");
+  const token = Cookies.get('access_token');
+  // If no token, user hasn't voted (or can't vote)
+  if (!token) return { has_voted: false };
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+  
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts/${postId}/vote-status?user_id=${userId}`;
+  console.log(`Fetching vote status from: ${url}`);
+  
+  const response = await fetch(url, { 
+    method: 'GET', 
+    headers: headers, 
+    cache: 'no-store' 
+  });
+
+  if (!response.ok) {
+    let errorDetail = `Failed to fetch vote status for post ${postId} (Status: ${response.status})`;
+    try {
+      const errorData = await response.json();
+      errorDetail = errorData.detail || errorDetail;
+    } catch { /* Ignore */ }
+    console.error("fetchVoteStatusAPI error:", errorDetail);
+    throw new Error(errorDetail);
+  }
+
+  const result = await response.json();
+  return result;
 };

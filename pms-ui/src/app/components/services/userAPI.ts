@@ -1,5 +1,5 @@
 // services/userAPI.ts (or wherever your global user API calls reside)
-import Cookies from '../../../../node_modules/@types/js-cookie';
+import Cookies from 'js-cookie';
 import { User } from '@/components/types/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;

@@ -42,7 +42,6 @@ async def list_posts(
         posts = await post_mgr.get_posts(skip=skip, limit=limit)
         return posts
     except Exception as e:
-        # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve posts.")
 
 @router.get("/posts/{post_id}", response_model=PostRead)
@@ -64,22 +63,21 @@ async def get_single_post(post_id: str):
 
 # --- Comment Endpoints ---
 
-@router.post("/posts/{post_id}/comments", response_model=CommentRead, status_code=status.HTTP_201_CREATED)
-async def add_comment_to_post(
+@router.post("/posts/{post_id}/comments/{user_id}", response_model=CommentRead, status_code=status.HTTP_201_CREATED)
+async def add_comment_with_user(  # Changed function name to avoid duplicate
     post_id: str,
+    user_id: str,
     comment_data: CommentCreate,
 ):
     """
-    Adds a comment to a specific post.
+    Adds a comment to a specific post with explicit user ID.
     """
     try:
-        # Service handles checking user's can_comment permission
-        comment = await comment_mgr.create_comment(comment_data, post_id)
+        comment = await comment_mgr.create_comment(comment_data, post_id, user_id)
         return comment
     except HTTPException as he:
         raise he
     except Exception as e:
-        # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to add comment.")
 
 @router.get("/posts/{post_id}/comments", response_model=List[CommentRead])
@@ -105,27 +103,26 @@ async def get_post_comments(
         # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve comments.")
 
-@router.delete("/comments/{comment_id}", status_code=status.HTTP_200_OK)
-async def delete_a_comment(
+@router.delete("/comments/{comment_id}/{user_id}", status_code=status.HTTP_200_OK)
+async def delete_comment_with_user(  # Changed function name to avoid duplicate
     comment_id: str,
+    user_id: str,
 ):
     """
     Deletes a comment. Requires user to be the author or an admin.
     """
     try:
-        result = await comment_mgr.delete_comment(comment_id)
+        result = await comment_mgr.delete_comment(comment_id, user_id)
         return result
     except HTTPException as he:
         raise he
     except Exception as e:
-        # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete comment.")
-
 
 # --- Vote Endpoints ---
 
-@router.post("/posts/{post_id}/upvote", response_model=VoteResult)
-async def upvote_a_post(post_id: str):
+@router.post("/posts/{post_id}/upvote/{user_id}", response_model=VoteResult)
+async def upvote_a_post(post_id: str, user_id: str):
     """
     Adds the current user's upvote to a post. Idempotent.
     Returns the new vote count and the user's vote status (true).
@@ -136,7 +133,7 @@ async def upvote_a_post(post_id: str):
         if not post_accessible:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
 
-        result = await post_mgr.upvote_post(post_id)
+        result = await post_mgr.upvote_post(post_id, user_id)
         return result
     except HTTPException as he:
         raise he
@@ -144,8 +141,8 @@ async def upvote_a_post(post_id: str):
         # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upvote post.")
 
-@router.delete("/posts/{post_id}/upvote", response_model=VoteResult)
-async def remove_post_upvote(post_id: str):
+@router.delete("/posts/{post_id}/upvote/{user_id}", response_model=VoteResult)
+async def remove_post_upvote(post_id: str, user_id: str):
     """
     Removes the current user's upvote from a post. Idempotent.
     Returns the new vote count and the user's vote status (false).
@@ -156,7 +153,7 @@ async def remove_post_upvote(post_id: str):
         if not post_accessible:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
 
-        result = await post_mgr.remove_upvote(post_id)
+        result = await post_mgr.remove_upvote(post_id, user_id)
         return result
     except HTTPException as he:
         raise he
@@ -165,20 +162,18 @@ async def remove_post_upvote(post_id: str):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to remove upvote.")
 
 @router.get("/posts/{post_id}/vote-status", response_model=VoteStatus)
-async def get_vote_status_for_post(post_id: str):
+async def get_vote_status_for_post(post_id: str, user_id: str = Query(...)):  # Add user_id as required query parameter
     """
-    Checks if the currently logged-in user has upvoted the specified post.
+    Checks if the specified user has upvoted the post.
     """
     try:
-        # Ensure post exists and is accessible first
         post_accessible = await post_mgr.get_post_by_id(post_id)
         if not post_accessible:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or not accessible.")
 
-        status = await post_mgr.get_vote_status(post_id)
+        status = await post_mgr.get_user_vote_status(post_id, user_id)  # Updated function call
         return status
     except HTTPException as he:
         raise he
     except Exception as e:
-        # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to check vote status.")

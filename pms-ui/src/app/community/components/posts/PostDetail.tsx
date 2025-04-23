@@ -1,7 +1,10 @@
+"use client";
+
 // app/community/components/posts/PostDetail.tsx
 import { Post } from '@/app/community/types/post'; // Adjust path
-import { FaRegComments } from 'react-icons/fa6';
-import { BiUpArrow } from 'react-icons/bi'; // Upvote icon
+import UpvoteButton  from './UpvoteButton'; // Import the button
+import { useAuth } from '@/app/components/services/useAuth';
+
 
 // Re-use or create a shared date formatter
 const formatDate = (dateString: string): string => {
@@ -20,7 +23,8 @@ interface PostDetailProps {
 
 // This component can be a Server Component as it just displays data initially
 export function PostDetail({ post }: PostDetailProps) {
-  const upvoteCount = post.upvoter_ids?.length ?? 0;
+  const { user } = useAuth();
+  const initialUpvoteCount = post.upvoter_ids?.length ?? 0;
 
   return (
     <article className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border dark:border-gray-700">
@@ -41,7 +45,7 @@ export function PostDetail({ post }: PostDetailProps) {
       {/* Post Content */}
       <div className="prose dark:prose-invert max-w-none mb-6 break-words">
         {post.post_type === 'text' && post.content && (
-          <p>{post.content}</p> // Render simple text, consider markdown later
+          <p>{post.content}</p>
         )}
         {post.post_type === 'link' && post.url && (
           <p>
@@ -49,7 +53,6 @@ export function PostDetail({ post }: PostDetailProps) {
           </p>
         )}
          {post.post_type === 'media' && post.media_url && (
-            // Basic media handling: Link for now. Could embed later.
              <p>
                 Media: <a href={post.media_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline break-all">{post.media_url}</a>
              </p>
@@ -62,13 +65,20 @@ export function PostDetail({ post }: PostDetailProps) {
       {/* Post Footer - Interactions */}
       <footer className="flex items-center justify-between border-t dark:border-gray-700 pt-4">
          <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
-           {/* Placeholder for Upvote Button */}
-           <span title="Upvotes" className="flex items-center">
-             <BiUpArrow className="h-5 w-5 mr-1" />
-             {upvoteCount}
-           </span>
+           {/* Integrate Upvote Button */}
+           {user?._id && (
+             <UpvoteButton
+                  postId={post._id}
+                  initialUpvoteCount={initialUpvoteCount}
+                  userId={user._id}
+                  // Let the button fetch its own status here
+             />
+           )}
+           {/* Comment Count Display */}
            <span title="Comments" className="flex items-center">
-             <FaRegComments className="h-5 w-5 mr-1" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
              {post.comment_count ?? 0}
            </span>
          </div>
@@ -80,12 +90,9 @@ export function PostDetail({ post }: PostDetailProps) {
          </div>
       </footer>
 
-        {/* Area for Comments Section (to be added in Phase 3) */}
-        <div className="mt-8 border-t dark:border-gray-700 pt-6">
-            <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Comments</h3>
-            {/* Comments list and form will go here */}
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Comments section coming soon...</p>
-        </div>
+        {/* Comments Section (Handled by CommentList component passed from page.tsx) */}
+        {/* The CommentList component will be rendered by the page */}
+
     </article>
   );
 }

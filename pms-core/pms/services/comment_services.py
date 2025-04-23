@@ -48,10 +48,11 @@ class CommentMgr:
             # Log error ideally
             return None
 
-    async def create_comment(self, comment_data: CommentCreate, post_id: str) -> CommentRead:
+    async def create_comment(self, comment_data: CommentCreate, post_id: str, user_id: str) -> CommentRead:
         """Creates a new comment on a post."""
         comment_doc = comment_data.model_dump()
         comment_doc["post_id"] = post_id
+        comment_doc["author_id"] = user_id  # Add user_id as author_id
         comment_doc["created_at"] = datetime.utcnow()
 
         try:
@@ -85,13 +86,24 @@ class CommentMgr:
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error fetching comments: {str(e)}")
 
-    async def delete_comment(self, comment_id: str) -> Dict[str, Any]:
-        """Deletes a comment."""
+    async def delete_comment(self, comment_id: str, user_id: str) -> Dict[str, Any]:
+        """Deletes a comment if user is author or admin."""
         try:
+            # First check if comment exists and get its details
             comment_doc = await self.comments_collection.find_one({"_id": ObjectId(comment_id)})
             if not comment_doc:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                                   detail="Comment not found.")
+
+            # Check if user is author or admin
+            user = await user_mgr.users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                  detail="User not found.")
+
+            if user["role"] != "admin" and str(comment_doc["author_id"]) != user_id:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                  detail="Not authorized to delete this comment.")
 
             result = await self.comments_collection.delete_one({"_id": ObjectId(comment_id)})
             if result.deleted_count > 0:

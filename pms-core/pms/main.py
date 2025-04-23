@@ -102,6 +102,10 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+@app.get("/")
+async def welcome():
+    return("Welcome to PMS")
+
 app.include_router(authRouter, tags=["Auth"], prefix="/auth")
 app.include_router(userRouter, tags=["User"], prefix="/user")
 app.include_router(studentRouter, tags=["Student"], prefix="/student")

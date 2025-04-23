@@ -3,6 +3,8 @@ import "app/globals.css";
 import NavBar from "@/components/nav/NavBar";
 import { ToastContainer } from "react-toastify";
 import AlumniSidebar from "@/app/components/side/AlumniSideBar";
+import { AuthProvider } from '@/app/components/services/AuthContext';
+
 
 export const metadata: Metadata = {
   title: "PMS",
@@ -17,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="">
+        <AuthProvider>
         {/* Navigation Bar */}
         <NavBar />
 
@@ -29,6 +32,8 @@ export default function RootLayout({
             <ToastContainer position="bottom-left" autoClose={3000} />
           </div>
         </main>
+        </AuthProvider>
+        {/* Optional: Add any global footer or additional components here */}
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'; // Use next/navigation for App Rout
 import { useAuth } from '@/app/components/services/useAuth'; // Adjust path to your global useAuth hook
 import { createPostAPI } from '@/app/community/services/postAPI'; // Adjust path
 import { PostCreate } from '@/app/community/types/post'; // Adjust path
+import { Spinner } from '@heroui/react';
 
 // Optional: Import shared UI components if you have them
 // import Button from '@/components/common/Button';
@@ -100,7 +101,12 @@ export function PostForm() {
   };
 
   if (isAuthLoading) {
-      return <p>Loading user data...</p>; // Or a spinner
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spinner size="lg" color="primary" />
+        <span className="ml-2 text-gray-700 dark:text-gray-300">Loading users...</span>
+      </div>
+    );
   }
 
   return (
@@ -181,7 +187,6 @@ export function PostForm() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             required
-            placeholder="https://example.com"
             disabled={isLoading || !canUserPost}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50"
           />
@@ -199,7 +204,6 @@ export function PostForm() {
             value={mediaUrl}
             onChange={(e) => setMediaUrl(e.target.value)}
             required
-            placeholder="https://example.com/image.jpg"
             disabled={isLoading || !canUserPost}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50"
           />

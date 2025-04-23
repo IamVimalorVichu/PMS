@@ -1,12 +1,7 @@
 // app/community/types/post.ts
 
-// Define UserBasicInfo here for encapsulation within community types
-// Or import from a global type file if preferred (e.g., '@/types/auth')
-export interface UserBasicInfo {
-    id: string; // Or _id if backend uses that alias primarily in responses
-    user_name?: string;
-    role: "admin" | "faculty" | "student" | "alumni";
-  }
+import { UserBasicInfo } from "./auth";
+
   
   // Main Post type, matching backend PostRead schema
   export interface Post {
@@ -55,9 +50,3 @@ export interface UserBasicInfo {
   }
 
 
-  export interface PostCreateResponse {
-    status: "success" | "error";
-    message: string;
-    id: string;
-    is_approved: boolean;
-  }
