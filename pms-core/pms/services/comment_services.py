@@ -53,7 +53,7 @@ class CommentMgr:
         comment_doc = comment_data.model_dump()
         comment_doc["post_id"] = post_id
         comment_doc["author_id"] = user_id  # Add user_id as author_id
-        comment_doc["created_at"] = datetime.utcnow()
+        comment_doc["created_at"] = datetime.now()
 
         try:
             result = await self.comments_collection.insert_one(comment_doc)

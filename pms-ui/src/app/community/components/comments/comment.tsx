@@ -44,8 +44,8 @@ export function Comment({ comment, onCommentDeleted }: CommentProps) {
     setIsDeleting(true);
     setError(null);
     try {
-      await deleteCommentAPI(comment.id, user._id);
-      onCommentDeleted(comment.id); // Notify parent component
+      await deleteCommentAPI(comment._id, user._id);
+      onCommentDeleted(comment._id); // Notify parent component
       // No need to set state here, parent will re-render list
     } catch (err: unknown) {
       console.error("Failed to delete comment:", err);

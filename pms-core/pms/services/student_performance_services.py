@@ -80,7 +80,7 @@ class StudentPerformanceMgr:
                     if not file.filepath:
                         raise Exception(f"File not found: {file.filename}")
             
-            student_performance = student_performance.model_dump()
+            student_performance = student_performance.model_dump(exclude_none=True)
             result = await self.student_performance_collection.find_one_and_update(
                 {"student_id": student_id}, 
                 {"$set": student_performance}, 

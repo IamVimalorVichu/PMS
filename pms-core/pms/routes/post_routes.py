@@ -29,6 +29,25 @@ async def create_new_post(post_data: PostCreate):
         # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create post.")
 
+@router.post("/posts/{user_id}", status_code=status.HTTP_201_CREATED)
+async def create_new_post(
+    user_id: str,
+    post_data: PostCreate,
+):
+    """
+    Creates a new post with the specified user as author.
+    """
+    try:
+        result = await post_mgr.create_post(post_data, user_id)
+        return result
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Failed to create post."
+        )
+
 @router.get("/posts", response_model=List[PostRead])
 async def list_posts(
     skip: int = 0,

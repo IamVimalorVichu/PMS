@@ -22,7 +22,7 @@ export function CommentList({ postId, initialComments }: CommentListProps) {
 
   // Handler for when a comment is successfully deleted by Comment component
   const handleCommentDeleted = (deletedCommentId: string) => {
-    setComments(prevComments => prevComments.filter(comment => comment.id !== deletedCommentId));
+    setComments(prevComments => prevComments.filter(comment => comment._id !== deletedCommentId));
   };
 
   // TODO: Add logic for fetching more comments (pagination) if desired
@@ -41,7 +41,7 @@ export function CommentList({ postId, initialComments }: CommentListProps) {
         {comments.length > 0 ? (
           comments.map(comment => (
             <Comment
-              key={comment.id}
+              key={comment._id}
               comment={comment}
               onCommentDeleted={handleCommentDeleted}
             />

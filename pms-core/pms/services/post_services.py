@@ -48,13 +48,20 @@ class PostMgr:
             # Log error ideally
             return None
 
-    async def create_post(self, post_data: PostCreate) -> Dict[str, Any]:
+    async def create_post(self, post_data: PostCreate, user_id: str) -> Dict[str, Any]:
         """Creates a new post."""
         post_doc = post_data.model_dump(mode="json")
         post_doc["created_at"] = datetime.now()
+        post_doc["author_id"] = user_id  # Set the author ID
         post_doc["upvoter_ids"] = []
         post_doc["comment_count"] = 0
-        post_doc["is_approved"] = False  # All posts require approval
+        from pms.services.user_services import user_mgr
+        # Check if the user is an admin
+        user = await user_mgr.users_collection.find_one({"_id": ObjectId(user_id)})
+        if user and user.get("role") == "admin":
+            post_doc["is_approved"] = True
+        else:
+            post_doc["is_approved"] = False  # All other posts require approval
 
         try:
             result = await self.posts_collection.insert_one(post_doc)
@@ -66,8 +73,10 @@ class PostMgr:
                 "is_approved": post_doc["is_approved"]
             }
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-                              detail=f"Error creating post: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail=f"Error creating post: {str(e)}"
+            )
 
     async def get_post_by_id(self, post_id: str) -> Optional[PostRead]:
         """Fetches a single post by ID."""

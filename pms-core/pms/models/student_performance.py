@@ -44,6 +44,7 @@ class StudentPerformanceUpdate(BaseModel):
             year: Optional[int] = None
             mca_percentage: Optional[float] = None
             linkedin_url: Optional[str] = None
+            updated_at: Optional[datetime] = None
 
             class Config:
                 orm_mode = True

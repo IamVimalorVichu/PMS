@@ -1,61 +1,85 @@
-import { Input, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Progress } from "@heroui/react";
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Progress } from "@heroui/react";
 import { useRef, useState } from "react";
+import { toast } from "react-toastify";
 
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (files: FileList, onProgress: (progress: number) => void) => Promise<void>;
+  onUpload: (files: FileList, onProgress?: (progress: number) => void) => Promise<void>;
 }
 
-export default function FileUploadModal({ isOpen, onClose, onUpload }: FileUploadModalProps) {
+export default function FileUploadModal({
+  isOpen,
+  onClose,
+  onUpload
+}: FileUploadModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFiles(e.target.files);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      // Validate file types
+      const invalidFiles = Array.from(files).filter(
+        file => !['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)
+      );
+      
+      if (invalidFiles.length > 0) {
+        toast.error('Only PDF, JPEG, and PNG files are allowed');
+        return;
+      }
+
+      // Validate file sizes
+      const largeFiles = Array.from(files).filter(
+        file => file.size > 5 * 1024 * 1024 // 5MB
+      );
+      
+      if (largeFiles.length > 0) {
+        toast.error('Files must be less than 5MB');
+        return;
+      }
+
+      setSelectedFiles(files);
     }
   };
 
   const handleUpload = async () => {
     if (selectedFiles) {
+      setIsUploading(true);
       try {
-        setUploading(true);
         await onUpload(selectedFiles, (progress) => {
           setUploadProgress(progress);
         });
-        
-        // Reset form
+        onClose();
         setSelectedFiles(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        setUploading(false);
-        setUploadProgress(0);
-        onClose();
       } catch (error) {
-        setUploading(false);
+        console.error('Upload error:', error);
+      } finally {
+        setIsUploading(false);
         setUploadProgress(0);
-        // Handle error here
       }
     }
   };
 
-
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalContent>
-        <ModalHeader>Upload Document</ModalHeader>
+        <ModalHeader>
+          Upload Files
+        </ModalHeader>
         <ModalBody>
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
-            accept=".pdf"
+            accept=".pdf,.jpg,.jpeg,.png"
             multiple
-            disabled={uploading}
+            disabled={isUploading}
             className="block w-full text-sm text-gray-500
               file:mr-4 file:py-2 file:px-4
               file:rounded-md file:border-0
@@ -63,37 +87,21 @@ export default function FileUploadModal({ isOpen, onClose, onUpload }: FileUploa
               file:bg-primary-50 file:text-primary-700
               hover:file:bg-primary-100"
           />
-          
-          {uploading && (
-            <div className="mt-4 space-y-2">
-              <Progress 
-                value={uploadProgress} 
-                color="secondary"
-                className="w-full"
-                aria-label="Upload progress"
-              />
-              <p className="text-sm text-center text-gray-600">
-                Uploading... {uploadProgress}%
-              </p>
-            </div>
+          {isUploading && (
+            <Progress value={uploadProgress} className="mt-4" />
           )}
         </ModalBody>
         <ModalFooter>
-          <Button 
-            color="danger" 
-            variant="light" 
-            onPress={onClose}
-            isDisabled={uploading}
+          <Button
+            color="primary"
+            onClick={handleUpload}
+            isDisabled={!selectedFiles || isUploading}
+            isLoading={isUploading}
           >
-            Cancel
+            Upload
           </Button>
-          <Button 
-            color="primary" 
-            onPress={handleUpload}
-            isDisabled={!selectedFiles || uploading}
-            isLoading={uploading}
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
+          <Button variant="light" onClick={onClose}>
+            Cancel
           </Button>
         </ModalFooter>
       </ModalContent>

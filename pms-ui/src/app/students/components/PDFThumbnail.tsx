@@ -15,6 +15,7 @@ interface PDFThumbnailProps {
 export default function PDFThumbnail({ fileUrl, onClick }: PDFThumbnailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  console.log("fileUrl", fileUrl);
 
   return (
     <div 

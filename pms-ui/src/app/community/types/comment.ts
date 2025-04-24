@@ -10,7 +10,7 @@ export interface CommentCreate {
 
 // Matches the backend CommentRead schema
 export interface Comment {
-  id: string;
+  _id: string;
   content: string;
   post_id: string;
   author_id: string;

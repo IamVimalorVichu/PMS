@@ -119,6 +119,7 @@ export const useStudentManagement = () => {
   const handleFetchPerformance = useCallback(async (student_id: string) => {
     setPerformanceLoading(true);
     setPerformanceError(null);
+    console.log('Fetching performance for student ID:', student_id);
     try {
       const response = await fetchStudentPerformanceAPI(student_id);
       setPerformance(response);
@@ -344,14 +345,17 @@ export const useStudentManagement = () => {
     try {
       const formData = new FormData();
       
+      // Add files to the correct field based on type
+      const fieldName = type === 'certification' ? 'certification_files' : 'job_application_files';
       Array.from(files).forEach((file) => {
-        formData.append('files', file);
+        formData.append(fieldName, file);
       });
-      
-      formData.append('type', type);
-      formData.append('student_id', studentId);
 
-      // Use XMLHttpRequest for progress tracking
+      // Add minimal performance data
+      const performanceData = {};
+      formData.append('performance_data', JSON.stringify(performanceData));
+      console.log('performance data', performanceData);
+
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         
@@ -370,7 +374,7 @@ export const useStudentManagement = () => {
             await handleFetchPerformance(studentId);
             resolve(xhr.response);
           } else {
-            reject(new Error('Upload failed'));
+            reject(new Error(`Upload failed: ${xhr.status}`));
           }
         };
 
@@ -378,11 +382,18 @@ export const useStudentManagement = () => {
           reject(new Error('Network error'));
         };
 
-        xhr.open('POST', `${process.env.NEXT_PUBLIC_API_BASE_URL}/student-performance/upload-documents`);
+        // Use PATCH for existing performance, POST for new one
+        const method = 'PATCH'; // or check if performance exists and use POST/PATCH accordingly
+        const endpoint = `${process.env.NEXT_PUBLIC_API_BASE_URL}/student-performance/update/${studentId}`;
+        
+        xhr.open(method, endpoint);
         xhr.send(formData);
       });
     } catch (error) {
       console.error('Error uploading files:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      }
       throw error;
     }
   }, [handleFetchPerformance]);

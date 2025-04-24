@@ -36,6 +36,7 @@ class PostCreate(BaseModel):
     post_type: Literal['text', 'link', 'media']
     url: Optional[HttpUrl] = None
     media_url: Optional[HttpUrl] = None
+    author_id: str # This should be set by the server, not user input
 
     # Add validation logic here if needed (e.g., ensure content exists for text, url for link)
 

@@ -63,7 +63,7 @@ export default function Documents({
                   <div key={index} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
                     <div className="p-4 space-y-3">
                       <PDFThumbnail
-                        fileUrl={cert.filepath}
+                        fileUrl={`${cert.filepath}`}
                         onClick={() => handlePreview(cert.filepath, cert.filename)}
                         className="w-full h-32 object-cover rounded-lg"
                       />
@@ -151,13 +151,18 @@ export default function Documents({
           onClose={() => setIsUploadModalOpen(null)}
           onUpload={async (files, onProgress) => {
             try {
-              await handleFileUpload(files, isUploadModalOpen!, student._id, onProgress);
+              await handleFileUpload(
+                files,
+                isUploadModalOpen!,
+                student._id,
+                onProgress ?? (() => {})
+              );
               toast.success('Documents uploaded successfully!', {
                 position: "bottom-left",
               });
               setIsUploadModalOpen(null);
-            } catch {
-              toast.error('Failed to upload documents. Please try again.', {
+            } catch (error) {
+              toast.error(`Failed to upload documents. Please try again: ${(error as Error).message}`, {
                 position: "bottom-left",
               });
             }
@@ -173,7 +178,8 @@ export default function Documents({
           onDelete={async () => {
             if (selectedFile) {
               try {
-                const filepath = selectedFile.url.split('/uploads/')[1];
+                // Extract filepath correctly from the new structure
+                const filepath = selectedFile.url.split(`/uploads/${student._id}/`)[1];
                 const type = performance.certification_files.some(f => f.filepath === filepath)
                   ? 'certification'
                   : 'job_application';

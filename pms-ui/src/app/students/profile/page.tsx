@@ -60,7 +60,7 @@ export default function StudentProfile() {
   }
 
   if (error) {
-    return <div className="container mx-auto px-6 py-8 text-red-500">Error: {error.message}</div>;
+    return <div className="container mx-auto px-6 py-8 text-red-500">Error: {error}</div>;
   }
 
   if (!student) {
