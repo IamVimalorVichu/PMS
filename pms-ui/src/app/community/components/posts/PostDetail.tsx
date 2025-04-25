@@ -6,6 +6,7 @@ import { Post } from '@/app/community/types/post'; // Adjust path
 import UpvoteButton from './UpvoteButton'; // Import the *simplified* button
 import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
 import { fetchVoteStatusAPI } from '@/app/community/services/postAPI'; // Import API call
+import { ReportModalTrigger } from '@/app/community/components/report/ReportModalTrigger';
 
 // Re-use or create a shared date formatter
 const formatDate = (dateString: string): string => {
@@ -72,8 +73,21 @@ export function PostDetail({ post }: PostDetailProps) {
           Posted by{' '}
           <span className="font-medium text-gray-700 dark:text-gray-300">
             {post.author?.user_name || 'Unknown User'} ({post.author?.role || 'N/A'})
-          </span>{' '}
-          on {formatDate(post.created_at)}
+          </span>
+          {/* --- Add Report Trigger for the Author --- */}
+          {isAuthenticated && user?._id && post.author_id && user._id !== post.author_id && ( // Don't report self
+                <span className="ml-2 inline-block">
+                    <ReportModalTrigger
+                        itemId={post.author_id}
+                        itemType="user"
+                        reportedItemDescription={`user '${post.author?.user_name || 'Unknown'}'`}
+                        triggerElement={<span className="text-xs text-gray-400 hover:text-red-500 cursor-pointer">(Report User)</span>}
+                    />
+                </span>
+           )}
+
+
+          {' '}on {formatDate(post.created_at)}
         </div>
       </header>
 
@@ -111,10 +125,14 @@ export function PostDetail({ post }: PostDetailProps) {
            </span>
          </div>
          <div>
-            {/* Placeholder for Report Button */}
-             <button className="text-xs text-gray-500 hover:text-red-600 dark:hover:text-red-400">
-                 Report
-             </button>
+            {/* --- Add Report Trigger for the Post --- */}
+            {isAuthenticated && user?._id && ( // Only show if logged in
+                <ReportModalTrigger
+                    itemId={post._id}
+                    itemType="post"
+                    reportedItemDescription={`post titled '${post.title.substring(0, 50)}...'`} // Provide context
+                />
+            )}
          </div>
       </footer>
       {/* Comments Section (Rendered via CommentList component in page.tsx) */}

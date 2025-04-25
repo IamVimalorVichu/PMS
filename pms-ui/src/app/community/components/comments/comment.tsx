@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Comment as CommentType } from '@/app/community/types/comment'; // Adjust path
 import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
 import { deleteCommentAPI } from '@/app/community/services/postAPI'; // Adjust path
+import { ReportModalTrigger } from '@/app/community/components/report/ReportModalTrigger';
 
 // Re-use or create a shared date formatter
 const formatDate = (dateString: string): string => {
@@ -62,6 +63,18 @@ export function Comment({ comment, onCommentDeleted }: CommentProps) {
           <span className="font-semibold text-gray-800 dark:text-gray-200">
             {comment.author?.user_name || 'Unknown User'}
           </span>
+           {/* --- Add Report Trigger for the Author --- */}
+           {isAuthenticated && user?._id && comment.author_id && user._id !== comment.author_id && ( // Don't report self
+                <span className="ml-2 inline-block">
+                    <ReportModalTrigger
+                        itemId={comment.author_id}
+                        itemType="user"
+                        reportedItemDescription={`user '${comment.author?.user_name || 'Unknown'}'`}
+                        // Use a smaller trigger element maybe
+                        triggerElement={<span className="text-xs text-gray-400 hover:text-red-500 cursor-pointer">(Report User)</span>}
+                    />
+                </span>
+           )}
           <span className="text-gray-500 dark:text-gray-400 ml-2">
             ({comment.author?.role || 'N/A'})
           </span>
@@ -74,17 +87,28 @@ export function Comment({ comment, onCommentDeleted }: CommentProps) {
         {comment.content}
       </p>
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-      {canDelete && (
-        <div className="text-right mt-1">
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </button>
-        </div>
-      )}
+      {/* Actions: Delete and Report Comment */}
+      <div className="text-right mt-1 space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-150"> {/* Show actions on hover */}
+         {/* --- Add Report Trigger for the Comment --- */}
+         {isAuthenticated && user?._id && (
+            <ReportModalTrigger
+                itemId={comment._id}
+                itemType="comment"
+                reportedItemDescription={`comment by ${comment.author?.user_name || 'Unknown'}`}
+                // Use default trigger (text link)
+            />
+         )}
+         {/* Delete Button */}
+         {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+         )}
+      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ class Report(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     reporter_id: str # User._id of the user who reported
     reported_item_id: str # Post._id or Comment._id being reported
-    item_type: Literal['post', 'comment'] # Type of item being reported
+    item_type: Literal['post', 'comment', 'user'] # Type of item being reported
     reason: Optional[str] = None # Optional reason provided by the reporter
     status: Literal['pending', 'resolved', 'dismissed'] = 'pending' # Admin-managed status
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -26,7 +26,7 @@ class ReportCreate(BaseModel):
     Schema for creating a new report. Input from the user.
     """
     reported_item_id: str
-    item_type: Literal['post', 'comment']
+    item_type: Literal['post', 'comment', 'user']
     reason: Optional[str] = None
 
 class ReportRead(Report):

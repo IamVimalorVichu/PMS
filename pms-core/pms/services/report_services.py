@@ -45,9 +45,10 @@ class ReportMgr:
         except Exception:
             return None
 
-    async def create_report(self, report_data: ReportCreate) -> Dict[str, Any]:
+    async def create_report(self, report_data: ReportCreate, reporter_id: str) -> Dict[str, Any]:
         """Creates a new report."""
         report_doc = report_data.model_dump()
+        report_doc["reporter_id"] = reporter_id
         report_doc["created_at"] = datetime.utcnow()
         report_doc["status"] = "pending"
 
@@ -57,11 +58,13 @@ class ReportMgr:
             return {
                 "status": "success", 
                 "message": f"Report submitted successfully with id: {inserted_id}", 
-                "id": inserted_id
+                "_id": inserted_id
             }
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-                              detail=f"Error creating report: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail=f"Error creating report: {str(e)}"
+            )
 
     # --- Admin Functions ---
 

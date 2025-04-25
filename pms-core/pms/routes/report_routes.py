@@ -8,13 +8,13 @@ from pms.services.post_services import post_mgr
 
 router = APIRouter()
 
-@router.post("/reports", status_code=status.HTTP_201_CREATED)
-async def create_report(report_data: ReportCreate):
+@router.post("/create/{reporter_id}", status_code=status.HTTP_201_CREATED)
+async def create_report(report_data: ReportCreate, reporter_id: str):
     """
     Creates a new report for a post or comment.
     """
     try:
-        result = await report_mgr.create_report(report_data)
+        result = await report_mgr.create_report(report_data, reporter_id)
         return result
     except HTTPException as he:
         raise he
@@ -24,7 +24,7 @@ async def create_report(report_data: ReportCreate):
             detail="Failed to create report."
         )
 
-@router.get("/reports", response_model=List[ReportRead])
+@router.get("/get", response_model=List[ReportRead])
 async def list_reports(
     skip: int = 0,
     limit: int = Query(default=20, le=100)
@@ -41,7 +41,7 @@ async def list_reports(
             detail="Failed to retrieve reports."
         )
 
-@router.get("/reports/{report_id}", response_model=ReportRead)
+@router.get("/get/{report_id}", response_model=ReportRead)
 async def get_report(report_id: str):
     """
     Retrieves a single report by ID.

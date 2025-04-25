@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 // This is a Server Component
 export default async function SinglePostPage({ params }: { params: { postId: string } }) {
-  const { postId } = params;
+  const { postId } = await params;
   let post = null;
   let initialComments: CommentType[] = [];
   let fetchError = null;
