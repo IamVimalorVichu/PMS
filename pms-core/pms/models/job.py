@@ -12,7 +12,7 @@ class Job(BaseModel):
     title: str
     desc: Optional[str] = None
     loc: Optional[str] = None
-    job_type: Optional[Literal["full-time", "part-time", "Contract", "Remote"]] = "Full-time"
+    job_type: Optional[Literal["full-time", "part-time", "Contract", "Remote"]] = "full-time"
     requirement: Optional[str] = None
     experience: Optional[int] = 0
     salary: Optional[float] = None

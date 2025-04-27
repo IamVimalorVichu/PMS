@@ -178,8 +178,72 @@ export default function Edit() {
     };
 
     // Props for other modals and tabs (assuming these are correct)
-    const addCompanyModalProps = { isOpen: addCompanyModal, onClose: modalHandlers.company.close, onAddCompany: startAddingCompany, companyName, setCompanyName, all_companies, branch, setBranch, site, setSite, email, setEmail, ph_no, setPhNo, desc: companyDesc, setCompanyDesc };
-    const addJobModalProps = { isOpen: addJobModal, onClose: modalHandlers.job.close, onAddJob: startAddingJob, drive_companies, jobTitle, setJobTitle, jobExperience, setJobExperience, setJobDesc, jobLocation, setJobLocation, jobSalary, setJobSalary, joinDate, setJoinDate, lastDate, setLastDate, contactPerson, setContactPerson, contactEmail, setContactEmail, additional_instructions: job_additional_instructions, setAdditionalInstructions: setJobInstructions, desc: jobDesc, form_link: jobform_link, setFormLink: setJobFormLink };
+    const addCompanyModalProps = { 
+        isOpen: addCompanyModal, 
+        onClose: async () => {
+            modalHandlers.company.close();
+            if (drive_id) {
+                await fetchCompleteDrive(drive_id); // Refresh data after closing
+            }
+        },
+        onAddCompany: async () => {
+            try {
+                await startAddingCompany();
+                modalHandlers.company.close();
+                if (drive_id) {
+                    await fetchCompleteDrive(drive_id); // Refresh data after adding
+                }
+            } catch (error) {
+                console.error('Error adding company:', error);
+            }
+        },
+        companyName, setCompanyName, all_companies, branch, setBranch, 
+        site, setSite, email, setEmail, ph_no, setPhNo, 
+        desc: companyDesc, setCompanyDesc, loading: driveManagement.loading,
+    };
+    const addJobModalProps = { 
+        isOpen: addJobModal, 
+        onClose: async () => {
+            modalHandlers.job.close();
+            if (drive_id) {
+                await fetchCompleteDrive(drive_id); // Refresh data after closing
+            }
+        },
+        onAddJob: async () => {
+            try {
+                await startAddingJob();
+                modalHandlers.job.close();
+                if (drive_id) {
+                    await fetchCompleteDrive(drive_id); // Refresh data after adding
+                }
+            } catch (error) {
+                console.error('Error adding job:', error);
+            }
+        },
+        drive_companies, 
+        jobTitle, 
+        setJobTitle, 
+        jobExperience, 
+        setJobExperience, 
+        setJobDesc, 
+        jobLocation, 
+        setJobLocation, 
+        jobSalary, 
+        setJobSalary, 
+        joinDate, 
+        setJoinDate, 
+        lastDate, 
+        setLastDate, 
+        contactPerson, 
+        setContactPerson, 
+        contactEmail, 
+        setContactEmail, 
+        additional_instructions: job_additional_instructions, 
+        setAdditionalInstructions: setJobInstructions, 
+        desc: jobDesc, 
+        form_link: jobform_link, 
+        setFormLink: setJobFormLink 
+    };
     const requirementModalProps = { isOpen: requirementModal, onClose: modalHandlers.requirement.close, jobId: job_id, sslcCgpa, setSslcCgpa, plustwoCgpa, setPlustwoCgpa, degreeCgpa, setDegreeCgpa, mcaCgpa, setMcaCgpa, contract, setContract, additionalCriteria, setAdditionalCriteria, skillsRequired, setSkillsRequired, skillInput, setSkillInput, preferredQualifications, setPreferredQualifications, requiredCertifications, setRequiredCertifications, languageRequirements, setLanguageRequirements, onAddRequirement: startAddingRequirement };
     const generalDetailsProps = { drive, drive_id, title, setTitle, desc, setDesc, location, setLocation, drive_date, setDriveDate, application_deadline, setApplicationDeadline, additional_instructions, setAdditionalInstructions, onSaveDrive: startAddingDrive, onUpdateDrive: startUpdatingDrive, onDeleteDrive: startDeletingDrive, stages, setStages, isUpdateMode: !!id, onSave: !!id ? startUpdatingDrive : startAddingDrive, onDelete: startDeletingDrive, driveProgress, form_link: driveform_link, setFormLink: setDriveFormLink, isEditMode };
     const companyDetailsProps = { drive_companies, onAddCompany: modalHandlers.company.open, onUpdateCompany: startUpdatingCompany, onDeleteCompany: startDeletingCompany, company_id, setCompanyId, companyName, setCompanyName, branch, setBranch, site, setSite, email, setEmail, ph_no, setPhNo, desc: companyDesc, setCompanyDesc, companyProgressList, isEditMode };
@@ -204,7 +268,7 @@ export default function Edit() {
                 isSelected={isEditMode}
                 size="lg"
                 color="primary"
-                thumbIcon={({ isSelected }) => isSelected ? "Edit" : "Preview" }
+                thumbIcon={({ isSelected }) => isSelected ? "" : "Preview" }
                 onValueChange={setIsEditMode}
               >
                 {isEditMode ? "Edit Mode" : "Preview Mode"}
@@ -262,9 +326,9 @@ export default function Edit() {
             selectedKey={selected}
             onSelectionChange={(key) => setSelectedState(key.toString())}
             disabledKeys={isEditMode ? [] : ["general", "Companies", "Jobs", "FormTemplate"]}
-            classNames={{
-              tabList: "flex flex-wrap items-center gap-4 border-b pb-2 mt-4",
-            }}
+            // classNames={{
+            //   tabList: "flex flex-col items-center gap-4 border-r",
+            // }}
           >
             <Tab key="general" title="General Details">
               <GeneralDetailsTab {...generalDetailsProps} isPreviewMode={!isEditMode} />

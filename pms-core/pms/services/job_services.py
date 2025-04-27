@@ -144,11 +144,11 @@ class JobMgr:
     
     async def delete_job_by_drivecompany(self, drive_id:str, company_id:str):
         try: 
-            response = await self.job_collection.delete_many({"drive": drive_id, "company": company_id})
+            result = await self.job_collection.delete_many({"drive": drive_id, "company": company_id})
             return {
                 "status": "success",
                 "message": "Jobs deleted successfully",
-                "data": response
+                "count": result.deleted_count  # Return the count of deleted documents
             }
         except Exception as e:
             raise Exception(f"Error deleting jobs: {str(e)}")

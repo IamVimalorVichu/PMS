@@ -2,7 +2,6 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input } from "@heroui/react";
 import { Company } from "./types";
 
-
 interface AddJobModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -10,7 +9,7 @@ interface AddJobModalProps {
     setJobTitle: (value: string) => void;
     jobExperience: number;
     setJobExperience: (value: number) => void;
-    onAddJob: () => void;
+    onAddJob: () => Promise<void>;
     drive_companies: Company[];
     desc: string;
     setJobDesc: (value: string) => void;
@@ -30,15 +29,14 @@ interface AddJobModalProps {
     setAdditionalInstructions: (value: string) => void;
     form_link: string;
     setFormLink: (value: string) => void;
-
+    loading?: boolean; // Add loading prop
 }
-
 
 const formatDateForInput = (date: string | Date | null): string => {
     if (!date) return "";
     // Ensure it's a Date object before calling methods
     const d = date instanceof Date ? date : new Date(date);
-     if (isNaN(d.getTime())) return ""; // Handle invalid date strings/objects
+    if (isNaN(d.getTime())) return ""; // Handle invalid date strings/objects
     return d.toISOString().split('T')[0];
 };
 
@@ -66,15 +64,32 @@ export default function AddJobModal({
     setContactEmail,
     additional_instructions,
     setAdditionalInstructions,
-    form_link, setFormLink,
+    form_link,
+    setFormLink,
+    loading = false, // Add default value
 }: AddJobModalProps) {
+    // Add validation function
+    const validateForm = () => {
+        if (!jobTitle?.trim()) {
+            return false;
+        }
+        return true;
+    };
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose}>
+        <Modal
+            isOpen={isOpen}
+            onClose={() => {
+                if (!loading) {
+                    onClose();
+                }
+            }}
+        >
             <ModalContent>
                 <ModalHeader>
                     Add Job Details
                 </ModalHeader>
-                <ModalBody>
+                <ModalBody className="space-y-4">
                     <Input
                         label="Job Title"
                         variant="underlined"
@@ -93,7 +108,6 @@ export default function AddJobModal({
                         value={jobLocation}
                         onChange={(e) => setJobLocation(e.target.value)}
                     />
-                    
                     <Input
                         label="Experience (years)"
                         type="number"
@@ -146,11 +160,38 @@ export default function AddJobModal({
                         variant="underlined"
                         value={form_link}
                         onChange={(e) => setFormLink(e.target.value)}
-                        />
-                    <Button onPress={onAddJob}>Add Job</Button>
+                    />
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button
+                            variant="light"
+                            onPress={() => {
+                                if (!loading) {
+                                    onClose();
+                                }
+                            }}
+                            isDisabled={loading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            color="primary"
+                            onPress={async () => {
+                                if (loading || !validateForm()) return;
+
+                                try {
+                                    await onAddJob();
+                                    onClose();
+                                } catch (error) {
+                                    console.error('Error adding job:', error);
+                                }
+                            }}
+                            isDisabled={loading || !validateForm()}
+                        >
+                            {loading ? 'Adding...' : 'Add Job'}
+                        </Button>
+                    </div>
                 </ModalBody>
             </ModalContent>
         </Modal>
     );
-    
-   }
+}

@@ -101,7 +101,7 @@ export interface Performance {
   student_id: string;
   semester: number;
   tenth_cgpa: number;
-  twelfth_cgpa: number;
+  twelth_cgpa: number;
   degree_cgpa: number;
   mca_cgpa: number[];
   certification_files: FileInfo[]; 

@@ -212,7 +212,6 @@ const StudentList: React.FC<StudentListProps> = ({ studentsWithPerformance, onRe
                     {/* Student Name and Remove Button */}
                     <div className="flex justify-between items-start mb-1">
                         <span className="font-medium">{student.first_name} {student.last_name}
-                            <span className="text-xs text-gray-500 ml-1">({student._id})</span>
                         </span>
                         <Button
                             size="sm"
@@ -230,7 +229,7 @@ const StudentList: React.FC<StudentListProps> = ({ studentsWithPerformance, onRe
                         <div className="text-sm text-gray-600 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-1">
                            <span>10th: <span className="font-medium">{formatCGPA(performance.tenth_cgpa)}</span></span>
                            {/* Ensure correct field name for 12th - using twelfth_cgpa from your type */}
-                           <span>12th: <span className="font-medium">{formatCGPA(performance.twelfth_cgpa)}</span></span>
+                           <span>12th: <span className="font-medium">{formatCGPA(performance.twelth_cgpa)}</span></span>
                            <span>Degree: <span className="font-medium">{formatCGPA(performance.degree_cgpa)}</span></span>
                            <span>MCA: <span className="font-medium">{formatLatestMcaCGPA(performance.mca_cgpa)}</span></span>
                            {/* Add more fields if needed, e.g., Skills */}

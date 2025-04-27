@@ -672,7 +672,7 @@ export const useStudentManagement = () => {
           alt_email: student.alt_email,
           alt_ph: student.alt_ph,
           tenth_cgpa: performance.tenth_cgpa,
-          twelfth_cgpa: performance.twelfth_cgpa,
+          twelfth_cgpa: performance.twelth_cgpa,
           current_status: performance.current_status,
           linkedin_url: performance.linkedin_url,
         };

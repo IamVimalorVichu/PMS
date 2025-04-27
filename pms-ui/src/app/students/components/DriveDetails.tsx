@@ -16,7 +16,6 @@ export function DriveDetails({
   drive, 
   jobs,
 }: DriveDetailsProps) {
-  const { handleApplyClick } = useStudentManagement();
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-4">
@@ -35,19 +34,6 @@ export function DriveDetails({
               <span>{format(new Date(drive.drive_date), 'PP')}</span>
             </div>
           )}
-          {drive.form_link && (
-                <div>
-                  <p className="text-sm text-gray-500">Drive Application Form</p>
-                  <Button
-                  color="primary"
-                  variant="solid"
-                  size="sm"
-                  onPress={() => handleApplyClick(drive.form_link!)}
-                  >
-                  Apply to Drive
-                  </Button>
-                </div>
-                )}
         </div>
       </header>
 

@@ -8,14 +8,14 @@ class User(BaseModel):
     Represents a User in the system database.
     """
     id: Optional[str] = Field(None, alias="_id")
-    user_name: Optional[str] = ""
+    user_name: Optional[str] = None
     first_name: str
     middle_name: Optional[str] = ""
     last_name: Optional[str] = ""
     gender: Optional[Literal["Male", "Female", "Other"]] = "Male"
     email: Optional[EmailStr] = ""
     ph_no: Annotated[str, constr(min_length=10, max_length=14)]
-    password: Optional[str] = "" # Hashed password stored in DB
+    password: Optional[str] = "" # Hashed password stored in DB - maybe not needed
     role: Literal["admin", "faculty", "student", "alumni"]
     status: Optional[Literal["Inactive", "Active"]] = "Inactive"
     can_post: Optional[bool] = True # Community permission

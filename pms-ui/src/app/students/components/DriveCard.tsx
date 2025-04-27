@@ -18,14 +18,6 @@ export function DriveCard({ drive, onViewDetails }: DriveCardProps) {
         <div>
           <h2 className="text-xl font-semibold">{drive.title}</h2>
           <div className="flex gap-2 text-sm text-gray-600">
-            {drive.companies && drive.companies.length > 0 && (
-              <>
-                <span>
-                  {drive.companies.length} {drive.companies.length === 1 ? 'company' : 'companies'}
-                </span>
-                <span>•</span>
-              </>
-            )}
             {totalJobs > 0 && (
               <span>{totalJobs} {totalJobs === 1 ? 'position' : 'positions'}</span>
             )}

@@ -168,8 +168,8 @@ import {
                                         value={String(sslcCgpa || "")}
                                         onChange={(e) => setSslcCgpa(Number(e.target.value))}
                                         min="0"
-                                        max="10"
-                                        step="0.01"
+                                        max="99"
+                                        step="1"
                                         classNames={{
                                             label: "font-medium",
                                             input: "text-right"
@@ -182,8 +182,8 @@ import {
                                         value={String(plustwoCgpa || "")}
                                         onChange={(e) => setPlustwoCgpa(Number(e.target.value))}
                                         min="0"
-                                        max="10"
-                                        step="0.01"
+                                        max="99"
+                                        step="1.0"
                                         classNames={{
                                             label: "font-medium",
                                             input: "text-right"
@@ -196,8 +196,8 @@ import {
                                         value={String(degreeCgpa || "")}
                                         onChange={(e) => setDegreeCgpa(Number(e.target.value))}
                                         min="0"
-                                        max="10"
-                                        step="0.01"
+                                        max="99"
+                                        step="1"
                                         classNames={{
                                             label: "font-medium",
                                             input: "text-right"
