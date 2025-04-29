@@ -5,31 +5,7 @@ from pms.models.user import UserBasicInfo # Reusing the basic user info
 
 # --- Conversation Model ---
 
-class Conversation(BaseModel):
-    """
-    Represents a direct message conversation between two users.
-    """
-    id: Optional[str] = Field(None, alias="_id")
-    # Store sorted participant IDs to easily find existing conversations
-    participant_ids: List[str] = Field(..., min_length=2, max_length=2)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    last_message_at: Optional[datetime] = None # Timestamp of the latest message
-    last_message_preview: Optional[str] = None # Snippet of the latest message
 
-    # Fields populated in service/route layer for list views
-    participants: Optional[List[UserBasicInfo]] = None
-    # Optional: unread count - adds significant complexity, skipping for now
-
-    class Config:
-        populate_by_name = True
-
-class ConversationRead(Conversation):
-    """
-    Schema for returning conversation data, including populated participant info.
-    """
-    participants: Optional[List[UserBasicInfo]] = None
-
-# --- Message Model ---
 
 class Message(BaseModel):
     """
@@ -66,3 +42,30 @@ class ConversationCreate(BaseModel):
     Input schema to start or find a conversation with another user.
     """
     recipient_id: str
+
+class Conversation(BaseModel):
+    """
+    Represents a direct message conversation between two users.
+    """
+    id: Optional[str] = Field(None, alias="_id")
+    # Store sorted participant IDs to easily find existing conversations
+    participant_ids: List[str] = Field(..., min_length=2, max_length=2)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_message_at: Optional[datetime] = None # Timestamp of the latest message
+    last_message_preview: Optional[str] = None # Snippet of the latest message
+
+    # Fields populated in service/route layer for list views
+    participants: Optional[List[UserBasicInfo]] = None
+    # Optional: unread count - adds significant complexity, skipping for now
+    last_message: Optional[List[MessageRead]] = None  # Changed from Optional[Message]
+
+    class Config:
+        populate_by_name = True
+
+class ConversationRead(Conversation):
+    """
+    Schema for returning conversation data, including populated participant info.
+    """
+    participants: Optional[List[UserBasicInfo]] = None
+
+# --- Message Model ---

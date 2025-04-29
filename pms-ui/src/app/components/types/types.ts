@@ -1,6 +1,7 @@
 export interface User {
   _id?: string;
   user_name?: string;
+  avatarUrl?: string;
   first_name?: string;
   middle_name?: string;
   last_name?: string;
@@ -13,6 +14,21 @@ export interface User {
   can_post?: boolean;
   can_comment?: boolean;
 
+}
+
+export interface UserUpdate {
+  user_name?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  email?: string;
+  ph_no?: string;
+  password?: string;
+  role?: 'admin' | 'faculty' | 'student' | 'alumni';
+  status?: 'Inactive' | 'Active';
+  can_post?: boolean;
+  can_comment?: boolean;
 }
 
 export interface Requirement {

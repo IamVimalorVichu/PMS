@@ -106,72 +106,117 @@ class DirectMessageMgr:
         Finds or creates a conversation between two users.
         Returns the ConversationRead object with populated participant info.
         """
+        if not user1_id or not user2_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Both user IDs are required."
+            )
+
         if user1_id == user2_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot start a conversation with yourself.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Cannot start a conversation with yourself."
+            )
 
         # Canonical representation by sorting IDs
         participant_ids = sorted([user1_id, user2_id])
 
         try:
+            # First validate both users exist
+            user1_info = await self._get_user_basic_info(user1_id)
+            user2_info = await self._get_user_basic_info(user2_id)
+            
+            if not user1_info or not user2_info:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, 
+                    detail="One or both users not found."
+                )
+
             # Try to find existing conversation
-            existing_conv = await self.conversations_collection.find_one({"participant_ids": participant_ids})
+            existing_conv = await self.conversations_collection.find_one(
+                {"participant_ids": participant_ids}
+            )
 
             if existing_conv:
                 existing_conv["_id"] = str(existing_conv["_id"])
-                participants_info = await self._get_participants_info(existing_conv["participant_ids"])
+                participants_info = [user1_info, user2_info]  # We already have the info
                 return ConversationRead(**existing_conv, participants=participants_info)
-            else:
-                # Validate both users exist before creating conversation
-                user1_info = await self._get_user_basic_info(user1_id)
-                user2_info = await self._get_user_basic_info(user2_id)
-                if not user1_info or not user2_info:
-                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or both users not found.")
 
-                # Create new conversation
-                new_conv_doc = {
-                    "participant_ids": participant_ids,
-                    "created_at": datetime.utcnow(),
-                    "last_message_at": None,
-                    "last_message_preview": None
-                }
-                result = await self.conversations_collection.insert_one(new_conv_doc)
-                inserted_id = str(result.inserted_id)
+            # Create new conversation
+            new_conv_doc = {
+                "participant_ids": participant_ids,
+                "created_at": datetime.utcnow(),
+                "last_message_at": None,
+                "last_message_preview": None
+            }
 
-                # Fetch the created doc to return (or build from new_conv_doc)
-                created_conv = await self.conversations_collection.find_one({"_id": result.inserted_id})
-                if created_conv:
-                    created_conv["_id"] = str(created_conv["_id"])
-                    participants_info = await self._get_participants_info(created_conv["participant_ids"])
-                    return ConversationRead(**created_conv, participants=participants_info)
-                else:
-                     # Should ideally not happen
-                     logger.error(f"Failed to fetch newly created conversation: {inserted_id}")
-                     raise HTTPException(status_code=500, detail="Error creating conversation record.")
+            result = await self.conversations_collection.insert_one(new_conv_doc)
+            
+            # Return the new conversation
+            new_conv_doc["_id"] = str(result.inserted_id)
+            participants_info = [user1_info, user2_info]  # We already have the info
+            logger.info(f"Created new conversation between users {user1_id} and {user2_id}")
+            return ConversationRead(**new_conv_doc, participants=participants_info)
 
         except bson_errors.InvalidId:
-             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format provided.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Invalid user ID format provided."
+            )
         except HTTPException as he:
             raise he
         except Exception as e:
-            logger.error(f"Error finding or creating conversation between {user1_id} and {user2_id}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Server error handling conversation.")
+            logger.error(
+                f"Error finding/creating conversation between {user1_id} and {user2_id}: {e}", 
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail="Server error handling conversation."
+            )
 
     async def get_user_conversations(self, user_id: str, skip: int = 0, limit: int = 20) -> List[ConversationRead]:
-        """Retrieves conversations for a user, sorted by last message time."""
+        """Fetches conversations for a user with last message data."""
         try:
-            query = {"participant_ids": user_id}
-            sort_order = [("last_message_at", -1)] # Sort by most recent first
+            conversations_cursor = self.conversations_collection.find(
+                {"participant_ids": user_id}
+            ).sort("last_message_at", -1).skip(skip).limit(limit)
 
-            conversations_cursor = self.conversations_collection.find(query).sort(sort_order).skip(skip).limit(limit)
             conversations = []
-            async for conv_doc in conversations_cursor:
-                conv_doc["_id"] = str(conv_doc["_id"])
-                participants_info = await self._get_participants_info(conv_doc["participant_ids"])
-                conversations.append(ConversationRead(**conv_doc, participants=participants_info))
+            async for conv in conversations_cursor:
+                conv["_id"] = str(conv["_id"])
+                
+                # Fetch participants info
+                participants_info = await self._get_participants_info(conv["participant_ids"])
+                
+                # Fetch last message if timestamp exists
+                last_messages = []
+                if conv.get("last_message_at"):
+                    last_message_doc = await self.messages_collection.find_one(
+                        {"conversation_id": conv["_id"]},
+                        sort=[("created_at", -1)]
+                    )
+                    if last_message_doc:
+                        last_message_doc["_id"] = str(last_message_doc["_id"])
+                        sender_info = await self._get_user_basic_info(last_message_doc["sender_id"])
+                        last_messages.append(MessageRead(**last_message_doc, sender=sender_info))
+
+                conversations.append(
+                    ConversationRead(
+                        **conv,
+                        participants=participants_info,
+                        last_message=last_messages  # Now passing as a list
+                    )
+                )
+
             return conversations
+
         except Exception as e:
             logger.error(f"Error fetching conversations for user {user_id}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error retrieving conversations.")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to fetch conversations"
+            )
 
     async def get_messages_for_conversation(self, conversation_id: str, user_id: str, skip: int = 0, limit: int = 50) -> List[MessageRead]:
         """Retrieves messages for a conversation, validating user participation."""
@@ -194,48 +239,77 @@ class DirectMessageMgr:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error retrieving messages.")
 
     async def send_message(self, conversation_id: str, sender_id: str, content: str) -> MessageRead:
-        """Sends a message, validates participation, and updates conversation metadata."""
-        if not content or content.isspace():
-             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Message content cannot be empty.")
-
-        # Validate user is part of the conversation (also checks if conversation exists)
-        await self._validate_conversation_participant(conversation_id, sender_id)
-
+        """Sends a message and updates conversation's last message data."""
         try:
-            # Create message document
-            message_time = datetime.utcnow()
+            # ...existing validation code...
+
             message_doc = {
                 "conversation_id": conversation_id,
                 "sender_id": sender_id,
                 "content": content,
-                "created_at": message_time
+                "created_at": datetime.utcnow()
             }
-            result = await self.messages_collection.insert_one(message_doc)
-            inserted_id = str(result.inserted_id)
 
-            # Update conversation's last message timestamp and preview
-            preview = (content[:MAX_PREVIEW_LENGTH] + '...') if len(content) > MAX_PREVIEW_LENGTH else content
+            result = await self.messages_collection.insert_one(message_doc)
+            message_doc["_id"] = str(result.inserted_id)
+
+            # Update conversation with last message info
+            preview = content[:MAX_PREVIEW_LENGTH] + "..." if len(content) > MAX_PREVIEW_LENGTH else content
             await self.conversations_collection.update_one(
                 {"_id": ObjectId(conversation_id)},
-                {"$set": {"last_message_at": message_time, "last_message_preview": preview}}
+                {
+                    "$set": {
+                        "last_message_at": message_doc["created_at"],
+                        "last_message_preview": preview,
+                    }
+                }
             )
 
-            # Fetch the created message to return it with sender info
-            created_message_doc = await self.messages_collection.find_one({"_id": result.inserted_id})
-            if created_message_doc:
-                 created_message_doc["_id"] = str(created_message_doc["_id"])
-                 sender_info = await self._get_user_basic_info(created_message_doc["sender_id"])
-                 return MessageRead(**created_message_doc, sender=sender_info)
-            else:
-                 logger.error(f"Failed to retrieve newly sent message: {inserted_id}")
-                 raise HTTPException(status_code=500, detail="Failed to confirm message sending.")
+            # Get sender info for response
+            sender_info = await self._get_user_basic_info(sender_id)
+            return MessageRead(**message_doc, sender=sender_info)
 
-        except HTTPException as he:
-            raise he
         except Exception as e:
-            logger.error(f"Error sending message in conversation {conversation_id} by user {sender_id}: {e}", exc_info=True)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error sending message.")
-
+            logger.error(f"Error sending message in conversation {conversation_id}: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send message"
+            )
+    async def get_conversation_by_id(self, conversation_id: str, user_id: str) -> ConversationRead:
+        """
+        Retrieves a specific conversation by ID, ensuring the requesting user is a participant.
+        Returns populated ConversationRead object.
+        """
+        # Validate and get conversation
+        conv_doc = await self._validate_conversation_participant(conversation_id, user_id)
+        
+        try:
+            # Convert ObjectId to string
+            conv_doc["_id"] = str(conv_doc["_id"])
+            
+            # Get participants info
+            participants_info = await self._get_participants_info(conv_doc["participant_ids"])
+            
+            # Get last message if exists
+            last_messages = []
+            if conv_doc.get("last_message_at"):
+                last_message = await self.messages_collection.find_one(
+                    {"conversation_id": conversation_id},
+                    sort=[("created_at", -1)]
+                )
+                if last_message:
+                    last_message["_id"] = str(last_message["_id"])
+                    sender_info = await self._get_user_basic_info(last_message["sender_id"])
+                    last_messages.append(MessageRead(**last_message, sender=sender_info))
+            
+            return ConversationRead(**conv_doc, participants=participants_info, last_message=last_messages)
+        
+        except Exception as e:
+            logger.error(f"Error fetching conversation {conversation_id}: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error retrieving conversation details"
+            )
 
 # Instantiate the manager
 dm_mgr = DirectMessageMgr()

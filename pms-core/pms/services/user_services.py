@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
-from pms.models.user import User, UserUpdate
+import re
+from typing import List
+from pms.models.user import User, UserBasicInfo, UserUpdate
 from pms.models.auth import UserLogin
 from pms.db.database import DatabaseConnection
 from pms.core.config import config
 from pms.services.auth_services import create_access_token
 from pms.utils.utilities import util_mgr
 from bson import ObjectId
-from fastapi import HTTPException, status
+from fastapi import HTTPException, logger, status
 
 class UserMgr:
     def __init__(self):
@@ -155,6 +157,59 @@ class UserMgr:
             raise Exception("User not found")
         except Exception as e:
             raise Exception(f"Error deleting user: {str(e)}")
+        
+    async def search_users(self, query: str, current_user_id: str, limit: int = 10) -> List[UserBasicInfo]:
+        """Searches for users by name, username, or email, excluding the current user."""
+        if not query or len(query) < 2:  # Require minimum query length
+            return []
+
+        # Escape regex special characters in the query for safety
+        safe_query = re.escape(query)
+        # Case-insensitive regex search
+        regex_query = re.compile(safe_query, re.IGNORECASE)
+
+        # Fields to search across
+        search_filter = {
+            "$and": [
+                {"_id": {"$ne": ObjectId(current_user_id)}},  # Exclude self
+                {"status": "Active"},  # Optional: Only search active users?
+                {"$or": [
+                    {"first_name": regex_query},
+                    {"last_name": regex_query},
+                    {"user_name": regex_query},
+                    {"email": regex_query}
+                ]}
+            ]
+        }
+
+        # Projection to return only basic info
+        projection = {
+            "_id": 1,
+            "user_name": 1,
+            "role": 1,
+            "first_name": 1,
+            "last_name": 1
+        }
+
+        try:
+            cursor = self.users_collection.find(search_filter, projection).limit(limit)
+            results = []
+            async for user_doc in cursor:
+                # Convert ObjectId to string before creating UserBasicInfo
+                user_doc["_id"] = str(user_doc["_id"])
+                # Construct a display name or use username
+                display_name = f"{user_doc.get('first_name', '')} {user_doc.get('last_name', '')}".strip()
+                user_doc["user_name"] = user_doc.get("user_name") or display_name or "User"
+                
+                # Create UserBasicInfo with string _id
+                results.append(UserBasicInfo(**user_doc))
+            return results
+        except Exception as e:
+            logger.error(f"Error searching users: {e}")  # Use logger instead of print
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error searching users: {str(e)}"
+            )
     
     # async def logout_user(self, user_id: str):
     #     try:

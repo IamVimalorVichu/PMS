@@ -6,6 +6,7 @@ import { Comment as CommentType } from '@/app/community/types/comment'; // Adjus
 import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
 import { deleteCommentAPI } from '@/app/community/services/postAPI'; // Adjust path
 import { ReportModalTrigger } from '@/app/community/components/report/ReportModalTrigger';
+import { UserNameDisplay } from '../common/UserNameDisplay'; // Adjust path
 
 // Re-use or create a shared date formatter
 const formatDate = (dateString: string): string => {
@@ -60,21 +61,31 @@ export function Comment({ comment, onCommentDeleted }: CommentProps) {
     <div className="py-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
       <div className="flex justify-between items-start mb-1">
         <div className="text-sm">
-          <span className="font-semibold text-gray-800 dark:text-gray-200">
-            {comment.author?.user_name || 'Unknown User'}
-          </span>
-           {/* --- Add Report Trigger for the Author --- */}
-           {isAuthenticated && user?._id && comment.author_id && user._id !== comment.author_id && ( // Don't report self
-                <span className="ml-2 inline-block">
-                    <ReportModalTrigger
-                        itemId={comment.author_id}
-                        itemType="user"
-                        reportedItemDescription={`user '${comment.author?.user_name || 'Unknown'}'`}
-                        // Use a smaller trigger element maybe
-                        triggerElement={<span className="text-xs text-gray-400 hover:text-red-500 cursor-pointer">(Report User)</span>}
-                    />
-                </span>
-           )}
+          {comment.author ? (
+            <UserNameDisplay 
+              userInfo={comment.author}
+              className="font-semibold text-gray-800 dark:text-gray-200"
+            />
+          ) : (
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
+              Unknown User
+            </span>
+          )}
+          {/* Report User trigger - keep outside UserNameDisplay */}
+          {isAuthenticated && user?._id && comment.author_id && user._id !== comment.author_id && (
+            <span className="ml-2 inline-block">
+              <ReportModalTrigger
+                itemId={comment.author_id}
+                itemType="user"
+                reportedItemDescription={`user '${comment.author?.user_name || 'Unknown'}'`}
+                triggerElement={
+                  <span className="text-xs text-gray-400 hover:text-red-500 cursor-pointer">
+                    (Report User)
+                  </span>
+                }
+              />
+            </span>
+          )}
           <span className="text-gray-500 dark:text-gray-400 ml-2">
             ({comment.author?.role || 'N/A'})
           </span>

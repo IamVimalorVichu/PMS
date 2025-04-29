@@ -1,7 +1,7 @@
 // contexts/AuthContext.tsx
 "use client"; // Context needs to be a Client Component boundary
 
-import React, { createContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import Cookies from 'js-cookie';
 import { User } from '@/components/types/types'; // Import the *full* User type
@@ -13,7 +13,7 @@ interface AuthContextProps {
   isLoading: boolean; // Combined loading state (initial token check + API fetch)
   isAuthenticated: boolean; // Derived state: true if user profile is successfully loaded
   logout: () => void; // Function to handle logout
-  // Add login function if managed here, or handle login logic elsewhere
+  refetchUser: () => Promise<void>; // Add this new function type
 }
 
 // Interface for the data initially decoded from the token
@@ -32,6 +32,7 @@ export const AuthContext = createContext<AuthContextProps>({
   isLoading: true,
   isAuthenticated: false,
   logout: () => {},
+  refetchUser: async () => {}, // Add default implementation
 });
 
 interface AuthProviderProps {
@@ -96,6 +97,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Dependency array: run when tokenUser changes or loading states reset
   }, [tokenUser, fullUser, isLoadingProfile]);
 
+  const refetchUser = useCallback(async () => {
+    if (!tokenUser?._id) {
+      console.warn('Cannot refetch user: No token user ID available');
+      return;
+    }
+
+    setIsLoadingProfile(true);
+    try {
+      console.log(`AuthContext: Refetching profile for user ID: ${tokenUser._id}`);
+      const profile = await fetchUserProfileAPI(tokenUser._id);
+      setFullUser(profile);
+      console.log("AuthContext: Profile refetched successfully:", profile);
+    } catch (error: unknown) {
+      console.error('AuthContext: Failed to refetch user profile:', (error as Error).message);
+      // Optionally handle failed refetch
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [tokenUser?._id]);
 
   const logout = () => {
     Cookies.remove('access_token');
@@ -114,11 +134,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // useMemo to prevent unnecessary re-renders of consuming components
   const contextValue = useMemo(() => ({
     user: fullUser,
-    tokenUser: tokenUser, // Provide raw token data if needed
+    tokenUser,
     isLoading,
     isAuthenticated,
     logout,
-  }), [fullUser, tokenUser, isLoading, isAuthenticated]);
+    refetchUser, // Add the new function
+  }), [fullUser, tokenUser, refetchUser, isLoading, isAuthenticated]);
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -126,3 +147,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+

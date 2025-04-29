@@ -18,6 +18,6 @@ export interface Comment {
   author?: {
     _id: string;
     user_name: string;
-    role: string;
+    role: "admin" | "faculty" | "student" | "alumni";
   };
 }

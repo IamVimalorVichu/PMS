@@ -7,6 +7,7 @@ import UpvoteButton from './UpvoteButton'; // Import the *simplified* button
 import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
 import { fetchVoteStatusAPI } from '@/app/community/services/postAPI'; // Import API call
 import { ReportModalTrigger } from '@/app/community/components/report/ReportModalTrigger';
+import { UserNameDisplay } from '../common/UserNameDisplay'; // Import UserNameDisplay
 
 // Re-use or create a shared date formatter
 const formatDate = (dateString: string): string => {
@@ -71,9 +72,12 @@ export function PostDetail({ post }: PostDetailProps) {
         </h1>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           Posted by{' '}
-          <span className="font-medium text-gray-700 dark:text-gray-300">
-            {post.author?.user_name || 'Unknown User'} ({post.author?.role || 'N/A'})
-          </span>
+          {post.author && (
+            <UserNameDisplay 
+              userInfo={post.author} 
+              className="text-gray-700 dark:text-gray-300"
+            />
+          )}
           {/* --- Add Report Trigger for the Author --- */}
           {isAuthenticated && user?._id && post.author_id && user._id !== post.author_id && ( // Don't report self
                 <span className="ml-2 inline-block">

@@ -71,7 +71,7 @@ export default function UpvoteButton({ postId, initialUpvoteCount, userId, initi
       isIconOnly
       radius='full'
       size='md'
-      className={`${hasVoted ? 'bg-blue-100 dark:bg-blue-900' : 'bg-transparent'}`}
+      className={'bg-transparent'}
       onPress={() => handleVoteClick(userId)}
       disabled={isDisabled}
       title={isAuthenticated ? (hasVoted ? "Remove upvote" : "Upvote") : "Log in to vote"}

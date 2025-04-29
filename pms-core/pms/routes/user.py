@@ -1,9 +1,10 @@
 from urllib import response
 from fastapi import FastAPI, HTTPException, status, APIRouter
-from pms.models.user import User, UserUpdate
+from fastapi.params import Query
+from pms.models.user import User, UserBasicInfo, UserUpdate
 from pms.services.user_services import user_mgr
 from pymongo import ReturnDocument
-from typing import List
+from typing import List, Optional
 from bson import ObjectId
 
 
@@ -63,4 +64,28 @@ async def delete_user(user_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting user: {str(e)}"
+        )
+@router.get("/search/{user_id}", response_model=List[UserBasicInfo])
+async def search_for_users(
+    user_id: str, # Current user ID passed in path
+    q: Optional[str] = Query(None, min_length=2, max_length=50), # Search query param
+    limit: int = Query(default=10, le=25) # Limit results
+):
+    """
+    Searches for active users by name, username, or email, excluding the current user.
+    Requires a query parameter 'q' with min 2 characters.
+    """
+    if q is None:
+        # Return empty list or bad request if query is missing
+        # raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Search query 'q' is required.")
+        return [] # Return empty list if no query
+
+    try:
+        users = await user_mgr.search_users(query=q, current_user_id=user_id, limit=limit)
+        return users
+    except Exception as e:
+        # Log the exception e
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error searching users: {str(e)}"
         )

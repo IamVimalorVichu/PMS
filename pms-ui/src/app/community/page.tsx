@@ -3,6 +3,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Modal } from '@/app/community/components/common/modal';
+import { ProfileEditCard } from './components/profile/ProfileEditCard';
 import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
 import { fetchPostsAPI, fetchVoteStatusAPI } from '@/app/community/services/postAPI'; // Adjust path
 import { PostPreview } from '@/app/community/components/posts/PostPreview'; // Adjust path (will be simplified)
@@ -19,10 +22,12 @@ interface PostWithVoteStatus extends Post {
 // import CommunityLoading from './loading'; // Can still use loading.tsx for route transition
 
 export default function CommunityFeedPage() {
+  const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [postsWithStatus, setPostsWithStatus] = useState<PostWithVoteStatus[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   // Add state for pagination if needed later
   const [currentPage,] = useState(0); // Example pagination state
   const postsPerPage = 10; // Example
@@ -99,12 +104,39 @@ export default function CommunityFeedPage() {
     <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Community Feed</h1>
-        <Link href="/community/create">
-           <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-150 ease-in-out">
-             Create Post
-           </button>
-        </Link>
+        <div className="flex gap-3">
+          {isAuthenticated && (
+            <>
+              <button
+                onClick={() => router.push('/community/dm')}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-150 ease-in-out"
+              >
+                Messages
+              </button>
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition duration-150 ease-in-out"
+              >
+                Edit Profile
+              </button>
+            </>
+          )}
+          <Link href="/community/create">
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-150 ease-in-out">
+              Create Post
+            </button>
+          </Link>
+        </div>
       </div>
+
+      {/* Profile Edit Modal */}
+      <Modal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        title="Edit Profile"
+      >
+        <ProfileEditCard onClose={() => setIsProfileModalOpen(false)} />
+      </Modal>
 
       {fetchError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
