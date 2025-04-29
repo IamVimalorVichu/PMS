@@ -1,5 +1,7 @@
 // app/community/types/report.ts
 
+import { UserBasicInfo } from "./auth";
+
 // Import UserBasicInfo if needed for ReportRead later, assuming global for now
 // import { UserBasicInfo } from '@/types/auth';
 
@@ -28,4 +30,10 @@ export interface ReportCreate {
   // Type for updating a report's status (admin action)
   export interface ReportUpdate {
     status: 'pending' | 'resolved' | 'dismissed';
+  }
+
+  export interface ReportRead extends Report {
+    // Optional: Include reporter info if backend populates it for admin view
+    reporter?: UserBasicInfo;
+
   }

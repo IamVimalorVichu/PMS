@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import re
-from typing import List
+from typing import List, Optional
+from bson.errors import InvalidId
+from pymongo import ReturnDocument
 from pms.models.user import User, UserBasicInfo, UserUpdate
 from pms.models.auth import UserLogin
 from pms.db.database import DatabaseConnection
@@ -210,6 +212,90 @@ class UserMgr:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error searching users: {str(e)}"
             )
+    async def get_users_for_admin(self, skip: int = 0, limit: int = 20, search_query: Optional[str] = None) -> List[User]:
+        """
+        Fetches a list of users with relevant fields for admin management.
+        Allows optional searching.
+        """
+        query = {}
+        if search_query and len(search_query) >= 2:
+            safe_query = re.escape(search_query)
+            regex = re.compile(safe_query, re.IGNORECASE)
+            query["$or"] = [
+                {"first_name": regex},
+                {"last_name": regex},
+                {"user_name": regex},
+                {"email": regex}
+            ]
+
+        # Projection: Select fields needed for the admin user list
+        # Exclude password! Include permissions.
+        projection = {
+            "password": 0
+        }
+
+        try:
+            cursor = self.users_collection.find(query, projection).sort("first_name", 1).skip(skip).limit(limit)
+            users = []
+            async for user_doc in cursor:
+                # Ensure _id is stringified for Pydantic model
+                user_doc["id"] = str(user_doc["_id"])
+                # Pydantic model validation happens implicitly on return if route uses response_model=List[User]
+                # Or explicitly validate here: users.append(User(**user_doc))
+                users.append(user_doc) # Append raw dict for now, route model handles validation
+            return users
+        except Exception as e:
+            print(f"Error fetching users for admin: {e}")
+            # Log error properly
+            raise Exception(f"Error fetching users for admin: {str(e)}")
+
+
+    async def update_user_permissions(self, user_id: str, permissions: UserUpdate) -> Optional[User]:
+        """
+        Updates only the community permissions (can_post, can_comment) for a user.
+        Returns the updated user document (excluding password).
+        """
+        # Ensure we only process permission fields from the input model
+        update_data = {}
+        if permissions.can_post is not None:
+            update_data["can_post"] = permissions.can_post
+        if permissions.can_comment is not None:
+            update_data["can_comment"] = permissions.can_comment
+
+        if not update_data:
+            # If no valid permission fields were provided in the input
+            # You could raise an error or just return the current user data
+             print(f"No permission data provided for user {user_id}")
+             # Fetch and return current user data without changes
+             return await self.get_user(user_id)
+             # Or raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No permission fields provided.")
+
+
+        try:
+            updated_user_doc = await self.users_collection.find_one_and_update(
+                {"_id": ObjectId(user_id)},
+                {"$set": update_data},
+                # Return the document *after* the update
+                return_document=ReturnDocument.AFTER,
+                # Projection to exclude password from the returned document
+                projection={"password": 0}
+            )
+
+            if not updated_user_doc:
+                # User not found
+                return None # Or raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+            # Convert _id to string for Pydantic model
+            updated_user_doc["id"] = str(updated_user_doc["_id"])
+            # Validate and return using Pydantic model
+            return User(**updated_user_doc)
+        except InvalidId:
+             print(f"Invalid ObjectId format for user_id: {user_id}")
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+        except Exception as e:
+            print(f"Error updating user permissions for {user_id}: {e}")
+            # Log error properly
+            raise Exception(f"Error updating user permissions: {str(e)}")
     
     # async def logout_user(self, user_id: str):
     #     try:
