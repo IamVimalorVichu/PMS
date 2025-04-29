@@ -230,7 +230,7 @@ export default function JobDetailsTab({
                             onAddRequirement();
                         }}
                     >
-                        Manage Requirements
+                        Edit Requirements
                     </Button>
                     
                     {jobs.length >= 1 && (

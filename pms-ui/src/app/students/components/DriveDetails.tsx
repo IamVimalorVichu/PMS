@@ -195,10 +195,10 @@ function JobCard({ job, company, driveId }: { job: Job; company?: Company; drive
             <div className="space-y-4 pt-2">
               {/* Job Details */}
               <div className="grid grid-cols-2 gap-4">
-                {job.experience && (
+                {job.requirement?.experience_required && (
                   <div className="flex items-center gap-2">
                     <IoTimeOutline className="text-gray-500" />
-                    <span>{job.experience} years experience</span>
+                    <span>{job.requirement.experience_required} years experience</span>
                   </div>
                 )}
                 {job.salary_range && (

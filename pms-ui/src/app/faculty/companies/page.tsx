@@ -68,15 +68,19 @@ function CompaniesPage() {
                     <div className="flex h-full items-center gap-1"> {/* Adjusted gap/alignment */}
                         <Button
                             isIconOnly
+                            variant='ghost'
+                            radius='full'
                             size="sm" // Smaller buttons might fit better
                             aria-label={`Edit ${params.data.name}`}
                             onPress={() => handleOpenEditModal(params.data)}
-                            className="bg-blue-600 text-white"
+                            className="text-blue-600 border-blue-600"
                         >
                             <MdEdit />
                         </Button>
                         <Button
                             isIconOnly
+                            radius='full'
+                            variant='ghost'
                             size="sm"
                             color="danger"
                             aria-label={`Delete ${params.data.name}`}
