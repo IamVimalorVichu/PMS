@@ -13,11 +13,7 @@ from pms.services.user_services import user_mgr
 from bson import ObjectId, errors as bson_errors
 
 # Define router
-router = APIRouter(
-    prefix="/admin/community",
-    tags=["Admin - Community Management"],
-    # No global dependencies enforcing admin role here
-)
+router = APIRouter()
 
 # --- Helper Function Placeholder for Admin Check ---
 # You would implement this properly, likely calling user_mgr
