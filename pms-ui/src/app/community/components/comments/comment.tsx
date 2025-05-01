@@ -71,21 +71,7 @@ export function Comment({ comment, onCommentDeleted }: CommentProps) {
               Unknown User
             </span>
           )}
-          {/* Report User trigger - keep outside UserNameDisplay */}
-          {isAuthenticated && user?._id && comment.author_id && user._id !== comment.author_id && (
-            <span className="ml-2 inline-block">
-              <ReportModalTrigger
-                itemId={comment.author_id}
-                itemType="user"
-                reportedItemDescription={`user '${comment.author?.user_name || 'Unknown'}'`}
-                triggerElement={
-                  <span className="text-xs text-gray-400 hover:text-red-500 cursor-pointer">
-                    (Report User)
-                  </span>
-                }
-              />
-            </span>
-          )}
+         
           <span className="text-gray-500 dark:text-gray-400 ml-2">
             ({comment.author?.role || 'N/A'})
           </span>

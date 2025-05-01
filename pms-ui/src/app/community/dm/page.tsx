@@ -13,7 +13,8 @@ export default function DirectMessagesPage() {
   const [conversations, setConversations] = useState<ConversationRead[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Add pagination state if needed later
+
+  const canUserMessage = user?.can_message ?? false;
 
   useEffect(() => {
     // Don't fetch if auth is loading or user isn't logged in
@@ -47,13 +48,28 @@ export default function DirectMessagesPage() {
 
   const isLoading = isAuthLoading || isLoadingConversations;
 
+
+
   return (
     <div className="container mx-auto px-0 md:px-4 py-6 max-w-3xl"> {/* Max width for chat list */}
       <div className="flex justify-between items-center mb-4 px-4 md:px-0">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Messages</h1>
-        <Link href="/community/dm/new" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-          New Message
-        </Link>
+        {canUserMessage ? (
+          <Link 
+            href="/community/dm/new" 
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            New Message
+          </Link>
+        ) : (
+          <button 
+            disabled
+            title="You have been temporarily banned from messaging"
+            className="px-4 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed opacity-50"
+          >
+            New Message
+          </button>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border dark:border-gray-700">

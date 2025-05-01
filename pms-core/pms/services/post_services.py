@@ -249,6 +249,18 @@ class PostMgr:
             return posts
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error fetching pending posts: {str(e)}")
+    
+    async def get_post_id_by_comment_id(self, comment_id: str) -> Optional[str]:
+        """Fetches the post ID associated with a given comment ID."""
+        try:
+            # Assuming comments are stored in a separate collection
+            from pms.services.comment_services import comment_mgr
+            comment_doc = await comment_mgr.comments_collection.find_one({"_id": ObjectId(comment_id)}, {"post_id": 1})
+            if comment_doc:
+                return str(comment_doc["post_id"])
+            return None
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error fetching post ID by comment ID: {str(e)}")
 
 
 # Instantiate the manager

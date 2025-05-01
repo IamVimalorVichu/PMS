@@ -9,6 +9,7 @@ import { findOrCreateConversationAPI } from '@/app/community/services/dmAPI'; //
 import { UserBasicInfo } from '@/app/community/types/auth'; // Adjust path
 import { Input } from '@heroui/react'; // Assuming usage
 import { FaSpinner } from 'react-icons/fa'; // Example loading icon
+import { toast } from 'react-toastify';
 
 // Debounce helper function - Improved Typing
 // Use specific types for args and return type if possible,
@@ -40,6 +41,20 @@ export default function NewDirectMessagePage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isCreatingConvo, setIsCreatingConvo] = useState(false);
   const [createConvoError, setCreateConvoError] = useState<string | null>(null);
+
+  const canUserMessage = user?.can_message ?? false;
+
+  // Redirect if not logged in or banned from messaging
+  useEffect(() => {
+    if (!isAuthLoading) {
+      if (!isAuthenticated) {
+        router.replace('/login');
+      } else if (!canUserMessage) {
+        toast.error("Messaging temporarily disabled.");
+        router.replace('/community/dm'); // Redirect to DM index where ban message is shown
+      }
+    }
+  }, [isAuthLoading, isAuthenticated, canUserMessage, router]);
 
   // Debounced search function
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,17 +112,31 @@ export default function NewDirectMessagePage() {
     // No finally needed as we navigate away on success
   };
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      router.replace('/login'); // Or your login page path
-    }
-  }, [isAuthLoading, isAuthenticated, router]);
 
+  // Show loading state while checking auth and permissions
   if (isAuthLoading || !isAuthenticated) {
-      return <div className="p-4 text-center">Loading...</div>; // Or full page loader
+    return <div className="p-4 text-center">Loading...</div>;
   }
 
+  // Show temporary message while redirecting banned users
+  if (!canUserMessage) {
+    return (
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md border dark:border-gray-700 p-6">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">
+              Messaging Temporarily Disabled
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              You have been temporarily banned from sending messages.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  
   return (
     <div className="container mx-auto px-4 py-6 max-w-lg">
       <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">New Message</h1>

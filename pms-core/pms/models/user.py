@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, constr, Field
 from typing import Literal, Optional, Annotated, List
 
@@ -20,6 +21,8 @@ class User(BaseModel):
     status: Optional[Literal["Inactive", "Active"]] = "Inactive"
     can_post: Optional[bool] = True # Community permission
     can_comment: Optional[bool] = True # Community permission
+    can_message: Optional[bool] = True # Community permission
+    restricted_until: Optional[datetime] = None
 
     class Config:
         populate_by_name = True # Allows using alias "_id"
@@ -41,6 +44,8 @@ class UserUpdate(BaseModel):
     status: Optional[Literal["Inactive", "Active"]] = None
     can_post: Optional[bool] = None # Community permission update
     can_comment: Optional[bool] = None # Community permission update
+    can_message: Optional[bool] = None # Community permission update
+    restricted_until: Optional[datetime] = None
 
 # --- New Sub-Model for Embedding Basic User Info ---
 
@@ -55,3 +60,10 @@ class UserBasicInfo(BaseModel):
 
     class Config:
         populate_by_name = True # Allows using alias "_id"
+
+class ApplyRestrictionsPayload(BaseModel):
+    """Payload for applying restrictions to a user."""
+    disable_posts: Optional[bool] = None # True to disable, False/None to leave as is/enable if restricted_until is null
+    disable_comments: Optional[bool] = None
+    disable_messaging: Optional[bool] = None
+    restriction_days: Optional[int] = Field(None, ge=0, description="Duration in days. 0 or null means indefinite/manual removal.")

@@ -1,16 +1,16 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 from typing import List, Optional
 from bson.errors import InvalidId
 from pymongo import ReturnDocument
-from pms.models.user import User, UserBasicInfo, UserUpdate
+from pms.models.user import ApplyRestrictionsPayload, User, UserBasicInfo, UserUpdate
 from pms.models.auth import UserLogin
 from pms.db.database import DatabaseConnection
 from pms.core.config import config
 from pms.services.auth_services import create_access_token
 from pms.utils.utilities import util_mgr
-from bson import ObjectId
-from fastapi import HTTPException, logger, status
+from bson import ObjectId, errors as bson_errors
+from fastapi import BackgroundTasks, HTTPException, logger, status
 
 class UserMgr:
     def __init__(self):
@@ -239,7 +239,7 @@ class UserMgr:
             users = []
             async for user_doc in cursor:
                 # Ensure _id is stringified for Pydantic model
-                user_doc["id"] = str(user_doc["_id"])
+                user_doc["_id"] = str(user_doc["_id"])
                 # Pydantic model validation happens implicitly on return if route uses response_model=List[User]
                 # Or explicitly validate here: users.append(User(**user_doc))
                 users.append(user_doc) # Append raw dict for now, route model handles validation
@@ -252,7 +252,7 @@ class UserMgr:
 
     async def update_user_permissions(self, user_id: str, permissions: UserUpdate) -> Optional[User]:
         """
-        Updates only the community permissions (can_post, can_comment) for a user.
+        Updates community permissions (can_post, can_comment, can_message) for a user.
         Returns the updated user document (excluding password).
         """
         # Ensure we only process permission fields from the input model
@@ -261,15 +261,15 @@ class UserMgr:
             update_data["can_post"] = permissions.can_post
         if permissions.can_comment is not None:
             update_data["can_comment"] = permissions.can_comment
+        if permissions.can_message is not None:
+            update_data["can_message"] = permissions.can_message
 
         if not update_data:
             # If no valid permission fields were provided in the input
-            # You could raise an error or just return the current user data
-             print(f"No permission data provided for user {user_id}")
-             # Fetch and return current user data without changes
-             return await self.get_user(user_id)
-             # Or raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No permission fields provided.")
-
+            print(f"No permission data provided for user {user_id}")
+            # Fetch and return current user data without changes
+            return await self.get_user(user_id)
+            # Or raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No permission fields provided.")
 
         try:
             updated_user_doc = await self.users_collection.find_one_and_update(
@@ -286,12 +286,12 @@ class UserMgr:
                 return None # Or raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
             # Convert _id to string for Pydantic model
-            updated_user_doc["id"] = str(updated_user_doc["_id"])
+            updated_user_doc["_id"] = str(updated_user_doc["_id"])
             # Validate and return using Pydantic model
             return User(**updated_user_doc)
         except InvalidId:
-             print(f"Invalid ObjectId format for user_id: {user_id}")
-             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+            print(f"Invalid ObjectId format for user_id: {user_id}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
         except Exception as e:
             print(f"Error updating user permissions for {user_id}: {e}")
             # Log error properly
@@ -305,5 +305,123 @@ class UserMgr:
     #             "status": "success",
     #             "message": "User logged out successfully"
     #       }
+    async def _clear_restrictions(self, user_id: str):
+        """Internal function to clear restrictions for a user."""
+        print(f"Background task: Attempting to clear restrictions for user {user_id}")
+        try:
+            # Find user first to ensure they exist
+            user_doc = await self.users_collection.find_one(
+                {"_id": ObjectId(user_id), "restricted_until": {"$ne": None}},
+                {"_id": 1} # Only need ID for existence check
+            )
+            if not user_doc:
+                print(f"Background task: User {user_id} not found or not restricted. No action taken.")
+                return
+
+            # Set restrictions to default enabled and clear restricted_until
+            update_result = await self.users_collection.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$set": {
+                    "can_post": True,
+                    "can_comment": True,
+                    "can_message": True, # Assuming default is True
+                    "restricted_until": None
+                }}
+            )
+            if update_result.modified_count > 0:
+                print(f"Background task: Successfully cleared restrictions for user {user_id}")
+            else:
+                 print(f"Background task: Failed to modify restrictions for user {user_id} (maybe already cleared?).")
+
+        except bson_errors.InvalidId:
+             print(f"Background task: Invalid ObjectId format for user_id: {user_id}")
+        except Exception as e:
+            # Log this error thoroughly in a real application
+            print(f"Background task: Error clearing restrictions for user {user_id}: {e}")
+
+
+    async def apply_user_restrictions(
+        self,
+        target_user_id: str,
+        payload: ApplyRestrictionsPayload,
+        background_tasks: BackgroundTasks # Accept BackgroundTasks instance
+    ) -> Optional[User]:
+        """
+        Applies restrictions (post, comment, message) and sets an expiry time.
+        Schedules a background task to clear restrictions if a duration is set.
+        """
+        update_data = {}
+        restriction_end_time: Optional[datetime] = None
+
+        # Determine restriction end time
+        if payload.restriction_days is not None and payload.restriction_days > 0:
+            delta = timedelta(days=payload.restriction_days)
+            restriction_end_time = datetime.now() + delta
+            update_data["restricted_until"] = restriction_end_time
+        elif payload.restriction_days == 0: # 0 days might mean indefinite restriction
+             update_data["restricted_until"] = None # Or a far future date if preferred for indefinite
+             print(f"Applying indefinite restriction (manual removal needed) for user {target_user_id}")
+        else: # restriction_days is None
+            # If no duration is set, only apply restrictions if explicitly disabling
+            # and don't set restricted_until (manual removal needed)
+             update_data["restricted_until"] = None # Ensure it's cleared if not indefinite/timed
+             print(f"Applying restrictions without time limit (manual removal needed) for user {target_user_id}")
+
+
+        # Apply specific restrictions ONLY IF explicitly set to disable (True)
+        # If False or None, we don't necessarily enable them here, only when clearing.
+        if payload.disable_posts is True:
+            update_data["can_post"] = False
+        if payload.disable_comments is True:
+            update_data["can_comment"] = False
+        if payload.disable_messaging is True:
+            update_data["can_message"] = False
+
+        # If nothing is being updated (e.g., payload is empty or only sets flags to false/null)
+        if not update_data or all(v is None or v is False for k, v in payload.model_dump().items() if k != 'restriction_days'):
+             # Check if only clearing restriction time
+             if "restricted_until" in update_data and update_data["restricted_until"] is None:
+                 # Allow clearing restriction time without changing permissions yet
+                 pass # Proceed with the update below to clear time
+             else:
+                print(f"No effective restrictions or duration provided for user {target_user_id}")
+                user_doc = await self.get_user(target_user_id)
+                return User(**user_doc) if user_doc else None
+
+
+        try:
+            updated_user_doc = await self.users_collection.find_one_and_update(
+                {"_id": ObjectId(target_user_id)},
+                {"$set": update_data},
+                return_document=ReturnDocument.AFTER,
+                projection={"password": 0}
+            )
+
+            if not updated_user_doc:
+                return None # User not found
+
+            # Schedule background task ONLY if a specific end time was set
+            if restriction_end_time:
+                delay_seconds = (restriction_end_time - datetime.now()).total_seconds()
+                if delay_seconds > 0:
+                    print(f"Scheduling restriction clear task for user {target_user_id} in {delay_seconds:.0f} seconds.")
+                    # Use add_task to run the function after the response is sent
+                    background_tasks.add_task(self._clear_restrictions, target_user_id)
+                    # NOTE: FastAPI BackgroundTasks are simple fire-and-forget.
+                    # They are NOT persistent. If the server restarts before the task runs,
+                    # the task is lost. For critical scheduled tasks, use Celery, APScheduler, etc.
+                else:
+                     print(f"Restriction end time for user {target_user_id} is already in the past. Not scheduling clear task.")
+
+
+            updated_user_doc["_id"] = str(updated_user_doc["_id"])
+            return User(**updated_user_doc)
+
+        except bson_errors.InvalidId:
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid target user ID format.")
+        except Exception as e:
+            print(f"Error applying restrictions for user {target_user_id}: {e}")
+            raise Exception(f"Error applying restrictions: {str(e)}")
+
 
 user_mgr = UserMgr()

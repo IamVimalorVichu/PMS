@@ -136,3 +136,28 @@ async def get_conversation_by_id(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Error retrieving conversation details."
                 )
+
+@router.post("/system-message/{target_user_id}/{admin_user_id}", response_model=MessageRead)
+async def send_system_message(
+    target_user_id: str,
+    admin_user_id: str,
+    payload: MessageCreate
+):
+    """
+    Sends a system message to a user.
+    Only accessible by administrators.
+    """
+    try:
+        message = await dm_mgr.send_system_message(
+            target_user_id=target_user_id,
+            admin_user_id=admin_user_id,
+            content=payload.content.strip()
+        )
+        return message
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error sending system message."
+        )

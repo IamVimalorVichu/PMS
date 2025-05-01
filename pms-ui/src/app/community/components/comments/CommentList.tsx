@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Comment as CommentType } from '@/app/community/types/comment';
 import { Comment } from './comment'; // Import the display component
 import { CommentForm } from './CommentForm'; // Import the form component
+import { ReportModalTrigger } from '@/app/community/components/report/ReportModalTrigger';
 
 interface CommentListProps {
   postId: string;
@@ -40,11 +41,17 @@ export function CommentList({ postId, initialComments }: CommentListProps) {
       <div className="mt-6 space-y-4">
         {comments.length > 0 ? (
           comments.map(comment => (
-            <Comment
-              key={comment._id}
-              comment={comment}
-              onCommentDeleted={handleCommentDeleted}
-            />
+            <div key={comment._id} className="flex justify-between items-start">
+              <Comment
+                comment={comment}
+                onCommentDeleted={handleCommentDeleted}
+              />
+              <ReportModalTrigger
+                itemId={comment._id}
+                itemType="comment"
+                reportedItemDescription={`Comment by ${comment.author?.user_name}`}
+              />
+            </div>
           ))
         ) : (
           <p className="text-gray-500 dark:text-gray-400 text-sm">

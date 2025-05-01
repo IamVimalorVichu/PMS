@@ -54,18 +54,13 @@ export function CommentForm({ postId, onCommentAdded }: CommentFormProps) {
     }
   };
 
-  // Don't render the form if user isn't authenticated or cannot comment
-   if (isAuthLoading) {
-       return <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded-md mb-4"></div>; // Loading placeholder
-   }
+  if (isAuthLoading) {
+    return <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded-md mb-4"></div>;
+  }
 
-   if (!isAuthenticated) {
-       return <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Please log in to comment.</p>;
-   }
-
-   if (!canUserComment) {
-        return <p className="text-sm text-red-600 dark:text-red-400 mb-4">You do not have permission to comment.</p>;
-   }
+  if (!isAuthenticated) {
+    return <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Please log in to comment.</p>;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="mb-6">
@@ -75,19 +70,27 @@ export function CommentForm({ postId, onCommentAdded }: CommentFormProps) {
         rows={3}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="Add your comment..."
+        placeholder={canUserComment 
+          ? "Add your comment..." 
+          : "You have been temporarily banned from commenting"}
         required
-        disabled={isLoading}
+        disabled={isLoading || !canUserComment}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50"
       />
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {!canUserComment && (
+        <p className="text-xs text-red-500 mt-1">
+          You have been temporarily banned from commenting
+        </p>
+      )}
       <div className="mt-2 flex justify-end">
         <button
           type="submit"
-          disabled={isLoading }
+          disabled={isLoading || !canUserComment}
+          title={!canUserComment ? "You have been temporarily banned from commenting" : ""}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
         >
-          {isLoading ? 'Posting...' : 'Post Comment'}
+          {isLoading ? 'Posting...' : 'Add Comment'}
         </button>
       </div>
     </form>

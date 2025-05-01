@@ -275,6 +275,72 @@ class DirectMessageMgr:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to send message"
             )
+
+    async def send_system_message(self, target_user_id: str, admin_user_id: str, content: str) -> MessageRead:
+        """
+        Sends a message from an admin to a user.
+        Creates a conversation if none exists.
+        """
+        try:
+            # Verify admin privileges
+            admin_info = await self._get_user_basic_info(admin_user_id)
+            if not admin_info or admin_info.role != 'admin':
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only administrators can send system messages"
+                )
+
+            # Validate target user exists
+            target_user = await self._get_user_basic_info(target_user_id)
+            if not target_user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Target user not found"
+                )
+
+            # Find or create conversation
+            conversation = await self.find_or_create_conversation(
+                user1_id=target_user_id,
+                user2_id=admin_user_id
+            )
+
+            # Create and send message
+            message_doc = {
+                "conversation_id": str(conversation.id),
+                "sender_id": admin_user_id,
+                "content": content,
+                "created_at": datetime.utcnow()
+            }
+
+            result = await self.messages_collection.insert_one(message_doc)
+            message_doc["_id"] = str(result.inserted_id)
+
+            # Update conversation's last message
+            preview = content[:MAX_PREVIEW_LENGTH] + "..." if len(content) > MAX_PREVIEW_LENGTH else content
+            await self.conversations_collection.update_one(
+                {"_id": ObjectId(conversation.id)},
+                {
+                    "$set": {
+                        "last_message_at": message_doc["created_at"],
+                        "last_message_preview": preview,
+                    }
+                }
+            )
+
+            return MessageRead(
+                **message_doc,
+                sender=admin_info
+            )
+
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            logger.error(f"Error sending system message: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send message"
+            )
+
     async def get_conversation_by_id(self, conversation_id: str, user_id: str) -> ConversationRead:
         """
         Retrieves a specific conversation by ID, ensuring the requesting user is a participant.

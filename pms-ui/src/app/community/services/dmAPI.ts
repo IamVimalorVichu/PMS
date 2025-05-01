@@ -198,3 +198,42 @@ export const getConversationByIdAPI = async (conversationId: string, userId: str
 
     return await response.json();
 };
+
+/**
+ * Sends a system message to a user.
+ * Requires admin authentication.
+ */
+export const sendSystemMessageAPI = async (targetUserId: string, messageData: MessageCreate, adminUserId: string): Promise<MessageRead> => {
+  if (!targetUserId || !adminUserId) {
+    throw new Error("Target User ID and Admin User ID are required.");
+  }
+  const token = Cookies.get('access_token');
+  if (!token) {
+    throw new Error('Authentication required.');
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  const url = `${API_BASE_URL}${DM_ENDPOINT}/system-message/${targetUserId}/${adminUserId}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(messageData),
+  });
+
+  if (!response.ok) {
+    let errorDetail = `Failed to send system message (Status: ${response.status})`;
+    try { const errorData = await response.json(); errorDetail = errorData.detail || errorDetail; } catch { /* Ignore */ }
+    console.error("sendSystemMessageAPI error:", errorDetail);
+    throw new Error(errorDetail);
+  }
+
+  const sentMessage: MessageRead = await response.json();
+  console.log("System message sent successfully:", sentMessage.id);
+  return sentMessage;
+};

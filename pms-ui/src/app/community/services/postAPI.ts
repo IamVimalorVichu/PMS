@@ -85,7 +85,7 @@ export const fetchPostByIdAPI = async (postId: string): Promise<Post> => {
   return post;
 };
 
-export const createPostAPI = async (postData: PostCreate): Promise<APIResponse> => { // Return type 'any' for now, adjust based on actual backend response
+export const createPostAPI = async (postData: PostCreate, user_id: string): Promise<APIResponse> => { // Return type 'any' for now, adjust based on actual backend response
   const token = Cookies.get('access_token');
 
   if (!token) {
@@ -99,7 +99,7 @@ export const createPostAPI = async (postData: PostCreate): Promise<APIResponse> 
     'Authorization': `Bearer ${token}`, // Add the Authorization header
   };
 
-  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts`;
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts/${user_id}`;
   console.log(`Creating post at: ${url} with data:`, postData); // Debug log
 
   // Basic validation before sending (optional but good practice)

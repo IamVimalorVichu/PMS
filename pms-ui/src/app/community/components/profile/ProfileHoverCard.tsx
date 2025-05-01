@@ -1,7 +1,7 @@
 // app/community/components/profile/ProfileHoverCard.tsx
 "use client";
 
-import React, { useState, useRef, ReactNode, useCallback } from 'react';
+import React, { useState, useRef, ReactNode, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserBasicInfo } from '@/app/community/types/auth'; // Or global User type
 import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
@@ -23,6 +23,8 @@ export function ProfileHoverCard({ userInfo, children }: ProfileHoverCardProps) 
   const [error, setError] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null); // Ref for positioning
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
   const openCard = useCallback(() => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
@@ -44,6 +46,40 @@ export function ProfileHoverCard({ userInfo, children }: ProfileHoverCardProps) 
   const handleCardMouseLeave = () => {
     closeCard();
   };
+
+  const updatePosition = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+
+      // Position the card below the trigger element
+      setPosition({
+        top: rect.bottom + scrollY,
+        left: Math.max(
+          0, // Prevent going off-screen to the left
+          Math.min(
+            rect.left + scrollX,
+            window.innerWidth - 256 // 256px is the card width (w-64)
+          )
+        ),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      // Update position on scroll and resize
+      window.addEventListener('scroll', updatePosition);
+      window.addEventListener('resize', updatePosition);
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
 
   const handleStartChat = async () => {
     if (!currentUser?._id || !userInfo?._id || isStartingChat) return;
@@ -71,7 +107,12 @@ export function ProfileHoverCard({ userInfo, children }: ProfileHoverCardProps) 
   const realName = `${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim();
 
   return (
-    <div className="relative inline-block" onMouseEnter={openCard} onMouseLeave={closeCard}>
+    <div 
+      ref={triggerRef}
+      className="relative inline-block" 
+      onMouseEnter={openCard} 
+      onMouseLeave={closeCard}
+    >
       {/* The trigger element */}
       {children}
 
@@ -79,10 +120,10 @@ export function ProfileHoverCard({ userInfo, children }: ProfileHoverCardProps) 
       {isOpen && (
         <div
           ref={cardRef}
-          className="fixed z-50 mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 p-4"
+          className="fixed z-50 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 p-4"
           style={{
-            top: cardRef.current?.getBoundingClientRect().bottom ?? 0,
-            left: cardRef.current?.getBoundingClientRect().left ?? 0,
+            top: `${position.top}px`,
+            left: `${position.left}px`,
           }}
           onMouseEnter={handleCardMouseEnter}
           onMouseLeave={handleCardMouseLeave}

@@ -20,6 +20,7 @@ export default function ConversationPage() {
   const params = useParams();
   const router = useRouter(); // For potential redirects
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const canUserMessage = user?.can_message ?? false;
   const conversationId = params?.conversationId as string | undefined; // Get ID from URL
 
   const [messages, setMessages] = useState<MessageRead[]>([]);
@@ -196,10 +197,22 @@ export default function ConversationPage() {
 
       {/* Message Input */}
       {conversationId && (
-        <MessageInput
-          conversationId={conversationId}
-          onMessageSent={handleMessageSent}
-        />
+        <>
+          {canUserMessage ? (
+            <MessageInput
+              conversationId={conversationId}
+              onMessageSent={handleMessageSent}
+            />
+          ) : (
+            <div className="p-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <div className="text-center text-sm text-red-600 dark:text-red-400 py-2">
+                <span role="alert">
+                  You have been temporarily banned from sending messages
+                </span>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

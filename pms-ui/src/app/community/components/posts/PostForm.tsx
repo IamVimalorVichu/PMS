@@ -57,7 +57,7 @@ export function PostForm() {
       setError("URL is required for link posts.");
       return;
     }
-     if (postType === 'media' && !mediaUrl.trim()) {
+    if (postType === 'media' && !mediaUrl.trim()) {
       setError("Media URL is required for media posts.");
       return;
     }
@@ -74,7 +74,7 @@ export function PostForm() {
     };
 
     try {
-      const result = await createPostAPI(postData);
+      const result = await createPostAPI(postData, user._id);
       console.log("Post creation API result:", result);
       setSuccessMessage(result?.message || "Post submitted successfully! It may require admin approval.");
 
@@ -109,6 +109,22 @@ export function PostForm() {
     );
   }
 
+  // Show a message when user is banned from posting
+  if (!isAuthLoading && isAuthenticated && !canUserPost) {
+    return (
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border dark:border-gray-700">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-2">
+            Posting Temporarily Disabled
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            You have been temporarily banned from creating posts.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border dark:border-gray-700">
       {error && (
@@ -124,7 +140,7 @@ export function PostForm() {
         </div>
       )}
 
-      {/* Title Input */}
+      {/* Title Input with tooltip */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Title <span className="text-red-500">*</span>
@@ -136,11 +152,13 @@ export function PostForm() {
           onChange={(e) => setTitle(e.target.value)}
           required
           disabled={isLoading || !canUserPost}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50"
+          title={!canUserPost ? "You have been temporarily banned from posting" : ""}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          placeholder={!canUserPost ? "Posting temporarily disabled" : "Enter post title"}
         />
       </div>
 
-      {/* Post Type Selector */}
+      {/* Post Type Selector with tooltip */}
       <div>
         <label htmlFor="postType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Post Type <span className="text-red-500">*</span>
@@ -150,7 +168,8 @@ export function PostForm() {
           value={postType}
           onChange={(e) => setPostType(e.target.value as 'text' | 'link' | 'media')}
           disabled={isLoading || !canUserPost}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50"
+          title={!canUserPost ? "You have been temporarily banned from posting" : ""}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <option value="text">Text</option>
           <option value="link">Link</option>
@@ -207,22 +226,25 @@ export function PostForm() {
             disabled={isLoading || !canUserPost}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 disabled:opacity-50"
           />
-           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Enter the direct URL to an image or other media.</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Enter the direct URL to an image or other media.</p>
         </div>
       )}
 
-      {/* Submit Button */}
+      {/* Update Submit Button with clearer messaging */}
       <div>
         <button
           type="submit"
           disabled={isLoading || !canUserPost || isAuthLoading}
+          title={!canUserPost ? "You have been temporarily banned from posting" : ""}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Submitting...' : 'Create Post'}
         </button>
-         {!isAuthLoading && !canUserPost && (
-             <p className="text-sm text-red-600 mt-2">You do not have permission to create posts.</p>
-         )}
+        {!isAuthLoading && !canUserPost && (
+          <p className="text-sm text-red-600 mt-2 text-center">
+            You have been temporarily banned from creating posts.
+          </p>
+        )}
       </div>
     </form>
   );

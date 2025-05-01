@@ -13,7 +13,7 @@ class Report(BaseModel):
     item_type: Literal['post', 'comment', 'user'] # Type of item being reported
     reason: Optional[str] = None # Optional reason provided by the reporter
     status: Literal['pending', 'resolved', 'dismissed'] = 'pending' # Admin-managed status
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.now)
 
     # Field populated in service/route layer for admin view
     reporter: Optional[UserBasicInfo] = None
@@ -35,6 +35,7 @@ class ReportRead(Report):
     Inherits all fields from Report.
     """
     reporter: Optional[UserBasicInfo] = None # Ensure this field is included
+    target_user_id: Optional[str] = None # For user reports, the target user ID
 
 class ReportUpdate(BaseModel):
     """

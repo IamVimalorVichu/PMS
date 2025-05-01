@@ -8,7 +8,7 @@ import { UserUpdate } from '@/components/types/types'; // Adjust path to global 
 import { User } from '@/components/types/types'; // Adjust path to global User type
 
 // Optional: Import a Switch component from HeroUI or another library
-// import { Switch } from '@heroui/react';
+import { Button } from '@heroui/react';
 
 interface AdminUserPermissionsToggleProps {
     targetUser: User; // Pass the full user object to get current state
@@ -18,11 +18,12 @@ interface AdminUserPermissionsToggleProps {
 
 export function AdminUserPermissionsToggle({ targetUser, onPermissionsChanged, onError }: AdminUserPermissionsToggleProps) {
     const { user: adminUser } = useAuth();
-    // Use local state to manage loading for each permission type
-    const [isLoading, setIsLoading] = useState<'can_post' | 'can_comment' | null>(null);
+    // Update the loading state type to include can_message
+    const [isLoading, setIsLoading] = useState<'can_post' | 'can_comment' | 'can_message' | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const handlePermissionChange = async (permission: 'can_post' | 'can_comment', currentValue: boolean) => {
+    // Update the handlePermissionChange function to include can_message
+    const handlePermissionChange = async (permission: 'can_post' | 'can_comment' | 'can_message', currentValue: boolean) => {
         if (!adminUser?._id || isLoading) return;
 
         const newValue = !currentValue; // Toggle the value
@@ -52,36 +53,52 @@ export function AdminUserPermissionsToggle({ targetUser, onPermissionsChanged, o
         <div className="space-y-1">
             {/* Can Post Toggle/Button */}
             <div className="flex items-center justify-center">
-                 {/* Example using simple buttons */}
-                 <button
-                    onClick={() => handlePermissionChange('can_post', targetUser.can_post ?? true)} // Default to true if undefined
-                    disabled={isLoading === 'can_post'}
-                    className={`w-12 px-2 py-0.5 text-xs rounded ${targetUser.can_post ?? true ? 'bg-green-200 text-green-800 hover:bg-green-300' : 'bg-red-200 text-red-800 hover:bg-red-300'} disabled:opacity-50`}
-                    title={`Click to ${targetUser.can_post ?? true ? 'Disable' : 'Enable'} Posting`}
-                >
-                    {isLoading === 'can_post' ? '...' : (targetUser.can_post ?? true ? 'Yes' : 'No')}
-                </button>
-                 {/* Example using a hypothetical Switch component
-                 <Switch
-                     checked={targetUser.can_post ?? true}
-                     onChange={(checked) => handlePermissionChange('can_post', !checked)} // Pass the *current* value before toggle
-                     disabled={isLoading === 'can_post'}
-                     size="sm" // Example size prop
-                 />
-                 */}
+            <Button
+                onPress={() => handlePermissionChange('can_post', targetUser.can_post ?? true)}
+                radius='md'
+                disabled={isLoading === 'can_post'}
+                variant='ghost'
+                color={targetUser.can_post ?? true ? 'danger' : 'success'}
+                size="sm"
+                title={`Click to ${targetUser.can_post ?? true ? 'Disable' : 'Enable'} Posting`}
+                className='w-32'
+            >
+                {isLoading === 'can_post' ? '...' : (targetUser.can_post ?? true ? 'Disable posting' : 'Enable posting')}
+            </Button>
             </div>
 
             {/* Can Comment Toggle/Button */}
-             <div className="flex items-center justify-center">
-                 <button
-                    onClick={() => handlePermissionChange('can_comment', targetUser.can_comment ?? true)}
-                    disabled={isLoading === 'can_comment'}
-                    className={`w-12 px-2 py-0.5 text-xs rounded ${targetUser.can_comment ?? true ? 'bg-green-200 text-green-800 hover:bg-green-300' : 'bg-red-200 text-red-800 hover:bg-red-300'} disabled:opacity-50`}
-                     title={`Click to ${targetUser.can_comment ?? true ? 'Disable' : 'Enable'} Commenting`}
-                >
-                    {isLoading === 'can_comment' ? '...' : (targetUser.can_comment ?? true ? 'Yes' : 'No')}
-                </button>
+            <div className="flex items-center justify-center">
+            <Button
+                onPress={() => handlePermissionChange('can_comment', targetUser.can_comment ?? true)}
+                radius='md'
+                disabled={isLoading === 'can_comment'}
+                variant='ghost'
+                color={targetUser.can_comment ?? true ? 'danger' : 'success'}
+                size="sm"
+                title={`Click to ${targetUser.can_comment ?? true ? 'Disable' : 'Enable'} Commenting`}
+                className='w-32'
+            >
+                {isLoading === 'can_comment' ? '...' : (targetUser.can_comment ?? true ? 'Disable commenting' : 'Enable commenting')}
+            </Button>
             </div>
+
+            {/* Add new Can Message Toggle/Button */}
+            <div className="flex items-center justify-center">
+                <Button
+                    onPress={() => handlePermissionChange('can_message', targetUser.can_message ?? true)}
+                    radius='md'
+                    disabled={isLoading === 'can_message'}
+                    variant='ghost'
+                    color={targetUser.can_message ?? true ? 'danger' : 'success'}
+                    size="sm"
+                    title={`Click to ${targetUser.can_message ?? true ? 'Disable' : 'Enable'} Messaging`}
+                    className='w-32'
+                >
+                    {isLoading === 'can_message' ? '...' : (targetUser.can_message ?? true ? 'Disable messaging' : 'Enable messaging')}
+                </Button>
+            </div>
+            
             {error && <p className="text-xs text-red-500 mt-1 text-center">{error}</p>}
         </div>
     );

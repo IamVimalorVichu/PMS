@@ -2,70 +2,60 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
-import { resolveReportAPI } from '@/app/community/services/adminAPI'; // Adjust path
-import { ReportUpdate } from '@/app/community/types/report'; // Adjust path
+// Removed unused API/Type imports for direct actions
+// import { useAuth } from '@/app/components/services/useAuth';
+// import { resolveReportAPI } from '@/app/community/services/adminAPI';
+// import { ReportUpdate } from '@/app/community/types/report';
+import { ReportRead } from '@/app/community/types/report'; // Keep ReportRead type
+import { ResolveReportModal } from './ResolveReportModal'; // Import the new modal
 
 interface AdminReportActionsProps {
-    reportId: string;
-    currentStatus: 'pending' | 'resolved' | 'dismissed';
-    // Callback with new status on success
-    onStatusChanged: (reportId: string, newStatus: 'resolved' | 'dismissed') => void;
-    onError?: (reportId: string, error: string) => void; // Optional error callback
+    report: ReportRead; // Pass the full report object now
+    // Callback when modal completes action (passes final status)
+    onResolutionComplete: (reportId: string, finalStatus: 'resolved' | 'dismissed') => void;
+    // onError is likely handled within the modal now, but can keep if needed
+    // onError?: (reportId: string, error: string) => void;
 }
 
-export function AdminReportActions({ reportId, currentStatus, onStatusChanged, onError }: AdminReportActionsProps) {
-    const { user } = useAuth();
-    const [isLoading, setIsLoading] = useState<'resolved' | 'dismissed' | null>(null);
-    const [error, setError] = useState<string | null>(null);
+export function AdminReportActions({ report, onResolutionComplete }: AdminReportActionsProps) {
+    // State to control the modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const handleAction = async (newStatus: 'resolved' | 'dismissed') => {
-        if (!user?._id || isLoading || currentStatus !== 'pending') return; // Only act on pending reports
-
-        setIsLoading(newStatus);
-        setError(null);
-        const updateData: ReportUpdate = { status: newStatus };
-
-        try {
-            await resolveReportAPI(reportId, updateData, user._id);
-            onStatusChanged(reportId, newStatus); // Notify parent
-        } catch (err: unknown) {
-            console.error(`Failed to set report ${reportId} status to ${newStatus}:`, err);
-            const errorMessage = (err as Error).message || "Status update failed";
-            setError(errorMessage);
-            if (onError) {
-                onError(reportId, errorMessage);
-            }
-        } finally {
-            // Reset loading state regardless of success/failure if parent doesn't remove item
-             setIsLoading(null);
-        }
+    const handleOpenModal = () => {
+        setIsModalOpen(true);
     };
 
-    // Only show actions for pending reports
-    if (currentStatus !== 'pending') {
-        return <span className="text-xs italic text-gray-500">Actioned</span>;
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+    };
+
+    // This function is passed to the modal to be called on successful submission
+    const handleModalCompletion = (reportId: string, finalStatus: 'resolved' | 'dismissed') => {
+        onResolutionComplete(reportId, finalStatus); // Pass the info up to the page
+        // Modal closes itself internally on success usually
+    };
+
+    // Only show the action button for pending reports
+    if (report.status !== 'pending') {
+        return <span className="text-xs italic text-gray-500 dark:text-gray-400">Actioned ({report.status})</span>;
     }
 
     return (
-        <div className="flex space-x-2">
-             {error && <p className="text-xs text-red-500 mr-auto">{error}</p>}
+        <>
             <button
-                onClick={() => handleAction('resolved')}
-                disabled={!!isLoading}
-                className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                title="Mark as resolved (action taken/content removed)"
+                onClick={handleOpenModal}
+                className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                title="Resolve or dismiss this report and take optional actions"
             >
-                {isLoading === 'resolved' ? '...' : 'Resolve'}
+                Take Action
             </button>
-            <button
-                onClick={() => handleAction('dismissed')}
-                disabled={!!isLoading}
-                className="text-xs px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
-                title="Dismiss report (no action needed)"
-            >
-                {isLoading === 'dismissed' ? '...' : 'Dismiss'}
-            </button>
-        </div>
+
+            <ResolveReportModal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                report={report}
+                onResolutionComplete={handleModalCompletion}
+            />
+        </>
     );
 }

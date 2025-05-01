@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
+from bson.errors import InvalidId
 from fastapi import HTTPException, status
 
 from pms.db.database import DatabaseConnection
@@ -118,6 +119,20 @@ class CommentMgr:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
                               detail=f"Error deleting comment: {str(e)}")
 
-
+    async def get_comment_by_id(self, comment_id: str) -> Optional[Dict[str, Any]]:
+        """Fetches a single comment document by its ID."""
+        try:
+            comment_doc = await self.comments_collection.find_one({"_id": ObjectId(comment_id)})
+            if comment_doc:
+                # No need to stringify ID here, just return the raw doc or relevant fields
+                return comment_doc
+            return None
+        except InvalidId:
+            print(f"Invalid ObjectId format for comment_id: {comment_id}")
+            return None
+        except Exception as e:
+            print(f"Error fetching comment {comment_id}: {e}")
+            # Don't raise HTTP exceptions from internal service calls usually
+            return None # Indicate failure to fetch
 # Instantiate the manager
 comment_mgr = CommentMgr()

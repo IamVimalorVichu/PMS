@@ -16,7 +16,7 @@ export interface ReportCreate {
   // Type representing a report object returned by the backend (e.g., for admin view)
   // Define based on what your backend /admin/community/reports endpoint returns
   export interface Report {
-    id: string; // or _id
+    _id: string; // or _id
     reporter_id: string;
     reported_item_id: string;
     item_type: 'post' | 'comment' | 'user';
@@ -35,5 +35,6 @@ export interface ReportCreate {
   export interface ReportRead extends Report {
     // Optional: Include reporter info if backend populates it for admin view
     reporter?: UserBasicInfo;
+    target_user_id: string ;
 
   }

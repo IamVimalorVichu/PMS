@@ -15,19 +15,6 @@ router = APIRouter()
 
 # --- Post Endpoints ---
 
-@router.post("/posts", status_code=status.HTTP_201_CREATED)
-async def create_new_post(post_data: PostCreate):
-    """
-    Creates a new post. Requires admin approval unless posted by an admin.
-    """
-    try:
-        result = await post_mgr.create_post(post_data)
-        return result
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        # Log e
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create post.")
 
 @router.post("/posts/{user_id}", status_code=status.HTTP_201_CREATED)
 async def create_new_post(

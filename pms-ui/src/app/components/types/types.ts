@@ -13,6 +13,8 @@ export interface User {
   status?: 'Inactive' | 'Active';
   can_post?: boolean;
   can_comment?: boolean;
+  can_message?: boolean;
+  restricted_until?: string | null; // Frontend usually receives dates as ISO strings or null
 
 }
 
@@ -29,6 +31,9 @@ export interface UserUpdate {
   status?: 'Inactive' | 'Active';
   can_post?: boolean;
   can_comment?: boolean;
+  can_message?: boolean;
+  restricted_until?: string | null; // Frontend usually receives dates as ISO strings or null
+
 }
 
 export interface Requirement {

@@ -1,10 +1,10 @@
 # pms/routes/admin_community_routes.py
 
-from fastapi import APIRouter, HTTPException, status, Query, Body, Path
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Query, Body, Path
 from typing import List, Optional
 from pms.models.post import PostRead
 from pms.models.report import ReportRead, ReportUpdate
-from pms.models.user import User, UserUpdate
+from pms.models.user import ApplyRestrictionsPayload, User, UserUpdate
 # Import service managers
 from pms.services.post_services import post_mgr
 from pms.services.report_services import report_mgr
@@ -142,17 +142,84 @@ async def get_admin_user_list(
 async def admin_update_user_permissions(
     user_id: str = Path(..., description="ID of the user whose permissions are being changed"),
     admin_user_id: str = Path(..., description="ID of the admin performing the action"),
-    permissions: UserUpdate = Body(..., description="Permission flags to update (can_post, can_comment)"),
+    permissions: UserUpdate = Body(..., description="Permission flags to update (can_post, can_comment, can_message)"),
 ):
-    """Admin: Updates a target user's community permissions."""
-    await verify_is_admin(admin_user_id) # Perform admin check
+    """
+    Admin: Updates a target user's community permissions.
+    Allows updating can_post, can_comment, and can_message flags.
+    """
+    await verify_is_admin(admin_user_id)
     try:
+        # Validate that at least one permission field is being updated
+        if all(getattr(permissions, field) is None 
+               for field in ['can_post', 'can_comment', 'can_message']):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least one permission field must be provided"
+            )
+            
         updated_user = await user_mgr.update_user_permissions(user_id, permissions)
+        if updated_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Target user not found"
+            )
+        return updated_user
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        # Log e
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update user permissions"
+        )
+
+@router.post("/users/{target_user_id}/restrict/{admin_user_id}", response_model=User)
+async def admin_apply_user_restrictions(
+    background_tasks: BackgroundTasks, # Inject BackgroundTasks dependency
+    target_user_id: str = Path(..., description="ID of the user to apply restrictions to"),
+    admin_user_id: str = Path(..., description="ID of the admin performing the action"),
+    payload: ApplyRestrictionsPayload = Body(...)
+):
+    """
+    Admin: Applies restrictions (posting, commenting, messaging) to a user
+    for a specified duration (in days). Schedules automatic removal.
+    """
+    await verify_is_admin(admin_user_id) # Perform admin check
+
+    try:
+        updated_user = await user_mgr.apply_user_restrictions(
+            target_user_id=target_user_id,
+            payload=payload,
+            background_tasks=background_tasks # Pass background tasks instance
+        )
         if updated_user is None:
              raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found.")
         return updated_user
     except HTTPException as he:
-        raise he # Re-raise specific HTTP exceptions from service
+        raise he
     except Exception as e:
         # Log e
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update user permissions.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to apply restrictions.")
+    
+@router.get("/posts/comment/{comment_id}")
+async def get_post_id_by_comment_id(
+            comment_id: str = Path(..., description="ID of the comment"),
+        ):
+            """Admin: Gets the post ID for a given comment ID."""
+            try:
+                post_id = await post_mgr.get_post_id_by_comment_id(comment_id)
+                if not post_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Post not found for the given comment ID"
+                    )
+                return {"post_id": post_id}
+            except HTTPException as he:
+                raise he
+            except Exception as e:
+                # Log e
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to retrieve post ID"
+                )

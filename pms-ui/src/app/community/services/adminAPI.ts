@@ -5,6 +5,7 @@ import { ReportRead, ReportUpdate } from '@/app/community/types/report'; // Adju
 import { User } from '@/components/types/types'; // Adjust path to global User type
 import { UserUpdate } from '@/components/types/types'; // Adjust path
 import { APIResponse } from '../types/api';
+import { ApplyRestrictionsPayload } from '../types/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const ADMIN_ENDPOINT = "/admin/community"; // Base for admin routes
@@ -59,6 +60,20 @@ export const fetchPendingPostsAPI = async (adminUserId: string, skip: number = 0
     if (!response.ok) await handleAdminApiError(response, "fetch pending posts");
     const posts: Post[] = await response.json();
     return posts;
+};
+
+export const fetchPostIdbyCommentIdAPI = async (commentId: string): Promise<string> => {
+    if (!commentId) throw new Error("Comment ID required.");
+    const url = `${API_BASE_URL}${ADMIN_ENDPOINT}/posts/comment/${commentId}`;
+    console.log(`Fetching post ID by comment ID from: ${url}`);
+    const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+    if (!response.ok) await handleAdminApiError(response, "fetch post ID by comment ID");
+    const data = await response.json();
+    console.log("Post ID fetched:", data);
+    if (!data || !data.post_id) {
+        throw new Error("Post ID not found for the given comment ID.");
+    }
+    return data.post_id;
 };
 
 export const approvePostAPI = async (postId: string, adminUserId: string): Promise<APIResponse> => {
@@ -129,10 +144,11 @@ export const fetchAdminUserListAPI = async (adminUserId: string, skip: number = 
 
 export const updateUserPermissionsAPI = async (targetUserId: string, permissions: UserUpdate, adminUserId: string): Promise<User> => {
     if (!targetUserId) throw new Error("Target User ID required.");
-    // Filter permissions to only include relevant keys if necessary, though backend service should handle it
+    // Include can_message in the payload
     const payload = {
         can_post: permissions.can_post,
         can_comment: permissions.can_comment,
+        can_message: permissions.can_message  // Add this line
     };
     const headers = getAuthHeaders(adminUserId, true); // Include Content-Type
     const url = `${API_BASE_URL}${ADMIN_ENDPOINT}/users/${targetUserId}/permissions/${adminUserId}`;
@@ -144,5 +160,49 @@ export const updateUserPermissionsAPI = async (targetUserId: string, permissions
     });
     if (!response.ok) await handleAdminApiError(response, `update permissions for user ${targetUserId}`);
     const updatedUser: User = await response.json();
+    return updatedUser;
+};
+
+/**
+ * Admin: Applies restrictions to a target user.
+ */
+export const applyUserRestrictionsAPI = async (
+    targetUserId: string,
+    payload: ApplyRestrictionsPayload,
+    adminUserId: string
+): Promise<User> => {
+    if (!targetUserId) throw new Error("Target User ID required.");
+
+    // Use getAuthHeaders if defined in this file, otherwise implement header logic here
+    const token = Cookies.get('access_token');
+    if (!token) throw new Error('Authentication required.');
+    const headers: HeadersInit = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+    };
+    // --- End Header Logic ---
+
+    const url = `${API_BASE_URL}/admin/community/users/${targetUserId}/restrict/${adminUserId}`; // Match backend route
+    console.log(`Applying restrictions to user ${targetUserId} at: ${url}`);
+
+    const response = await fetch(url, {
+        method: 'POST', // Assuming POST for this action based on route definition
+        headers: headers,
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        // Use handleAdminApiError if defined, otherwise implement error handling
+        let errorDetail = `Failed to apply restrictions (Status: ${response.status})`;
+        try { const errorData = await response.json(); errorDetail = errorData.detail || errorDetail; } catch { /* Ignore */ }
+        console.error("applyUserRestrictionsAPI error:", errorDetail);
+        const error = new Error(errorDetail); 
+        throw error;
+        // --- End Error Handling ---
+    }
+
+    const updatedUser: User = await response.json();
+    console.log(`Restrictions applied successfully for user ${targetUserId}`);
     return updatedUser;
 };
