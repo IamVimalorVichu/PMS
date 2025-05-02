@@ -67,6 +67,23 @@ async def get_single_post(post_id: str):
         # Log e
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve post.")
 
+@router.delete("/posts/{post_id}/{user_id}", status_code=status.HTTP_200_OK)
+async def delete_post(
+    post_id: str,
+    user_id: str,
+):
+    """
+    Deletes a post. Requires user to be the author or an admin.
+    """
+    try:
+        result = await post_mgr.delete_post(post_id, user_id)
+        return result
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        # Log e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete post.")
+
 # --- Comment Endpoints ---
 
 @router.post("/posts/{post_id}/comments/{user_id}", response_model=CommentRead, status_code=status.HTTP_201_CREATED)

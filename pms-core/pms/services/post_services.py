@@ -205,6 +205,35 @@ class PostMgr:
             )
         except Exception as e:
             print(f"Error decrementing comment count for post {post_id}: {e}")
+    
+    async def delete_post(self, post_id: str, user_id: str) -> Dict[str, Any]:
+        """Deletes a post if the user is the author or an admin."""
+        try:
+            # First check if post exists and get author info
+            post = await self.posts_collection.find_one({"_id": ObjectId(post_id)})
+            if not post:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+
+            # Check if user is author or admin
+            user = await user_mgr.users_collection.find_one({"_id": ObjectId(user_id)})
+            if not user:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+            if str(post["author_id"]) != user_id and user.get("role") != "admin":
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
+                                  detail="Not authorized to delete this post.")
+
+            # Delete the post
+            result = await self.posts_collection.delete_one({"_id": ObjectId(post_id)})
+            if result.deleted_count > 0:
+                return {"status": "success", "message": "Post deleted successfully."}
+            
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                              detail=f"Error deleting post: {str(e)}")
 
 
     # --- Admin Functions ---

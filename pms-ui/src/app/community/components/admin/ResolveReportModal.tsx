@@ -9,6 +9,7 @@ import { useAuth } from '@/app/components/services/useAuth'; // Adjust path
 import { ReportRead, ReportUpdate } from '@/app/community/types/report'; // Adjust path
 // Import the API functions and payload type
 import { applyUserRestrictionsAPI, resolveReportAPI } from '@/app/community/services/adminAPI'; // Adjust path
+import { deleteCommentAPI, deletePostAPI } from '../../services/postAPI';
 import { ApplyRestrictionsPayload } from '@/app/community/types/auth'; // Adjust path
 import { sendSystemMessageAPI } from '../../services/dmAPI';
 
@@ -21,7 +22,7 @@ interface ResolveReportModalProps {
 }
 
 export function ResolveReportModal({ isOpen, onClose, report, onResolutionComplete }: ResolveReportModalProps) {
-  const { user: adminUser } = useAuth(); // Get the admin user performing the action
+  const { user } = useAuth(); // Get the admin user performing the action
 
   // Form state
   const [messageToUser, setMessageToUser] = useState('');
@@ -30,6 +31,7 @@ export function ResolveReportModal({ isOpen, onClose, report, onResolutionComple
   const [disableMessaging, setDisableMessaging] = useState(false);
   const [restrictionDays, setRestrictionDays] = useState<number | string>(''); // Use string for input flexibility
   const [finalStatus, setFinalStatus] = useState<'resolved' | 'dismissed'>('resolved'); // Default final status
+  const [shouldDelete, setShouldDelete] = useState(true); // Add new state for delete checkbox
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,6 +50,7 @@ export function ResolveReportModal({ isOpen, onClose, report, onResolutionComple
       setRestrictionDays('');
       setError(null);
       setIsSubmitting(false);
+      setShouldDelete(true); // Reset delete checkbox to checked
       // Set initial finalStatus based on current report status if needed, or default
       setFinalStatus(report.status === 'pending' ? 'resolved' : report.status);
     }
@@ -62,13 +65,12 @@ export function ResolveReportModal({ isOpen, onClose, report, onResolutionComple
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     // Ensure all necessary data is present
-    if (!report || !adminUser?._id || isSubmitting) {
+    if (!report || !user?._id || isSubmitting) {
         setError("Cannot submit: Missing required data or already submitting.");
         return;
     }
     // Check if a target user ID is available for restrictions/messaging
     const canTakeUserAction = !!targetUserId;
-
 
     setIsSubmitting(true);
     setError(null);
@@ -86,10 +88,27 @@ export function ResolveReportModal({ isOpen, onClose, report, onResolutionComple
     const applyRestrictions = canTakeUserAction && (disablePosts || disableComments || disableMessaging || restrictionDuration !== null);
 
     try {
-        // Step 1: Apply Restrictions (if applicable and target user known)
+        // Step 1: Delete Item (if applicable)
+        if (shouldDelete && (report.item_type === 'post' || report.item_type === 'comment')) {
+            try {
+                if (report.item_type === 'post') {
+                    await deletePostAPI(report.reported_item_id, user._id);
+                } else {
+                    await deleteCommentAPI(report.reported_item_id, user._id);
+                }
+                console.log(`Successfully deleted ${report.item_type}`);
+            } catch (deleteError) {
+                console.error(`Failed to delete ${report.item_type}:`, deleteError);
+                setError(`Failed to delete ${report.item_type}. Please try again.`);
+                setIsSubmitting(false);
+                return;
+            }
+        }
+
+        // Step 2: Apply Restrictions (if applicable and target user known)
         if (applyRestrictions && targetUserId) {
             console.log(`Applying restrictions to user ${targetUserId}:`, restrictionsPayload);
-            await applyUserRestrictionsAPI(targetUserId, restrictionsPayload, adminUser._id);
+            await applyUserRestrictionsAPI(targetUserId, restrictionsPayload, user._id);
         } else if (applyRestrictions && !targetUserId) {
             console.warn("Skipping restrictions: Target user ID not available.");
             // Optionally inform the admin
@@ -97,23 +116,23 @@ export function ResolveReportModal({ isOpen, onClose, report, onResolutionComple
             // Decide if this should block the whole process or just skip restrictions
         }
 
-        // Step 2: Send Message (Placeholder - Requires Backend Implementation)
+        // Step 3: Send Message (Placeholder - Requires Backend Implementation)
         if (messageToUser.trim() && targetUserId) {
             console.log(`Sending message to user ${targetUserId} (API call placeholder):`, messageToUser);
             const messageData = {
                 content: messageToUser,
                 type: 'text'
             };
-            await sendSystemMessageAPI(targetUserId, messageData, adminUser._id);
+            await sendSystemMessageAPI(targetUserId, messageData, user._id);
             // alert("Message sending not implemented yet, but content was: " + messageToUser);
         } else if (messageToUser.trim() && !targetUserId) {
              console.warn("Skipping message: Target user ID not available.");
         }
 
-        // Step 3: Update Report Status (Always perform this)
+        // Step 4: Update Report Status (Always perform this)
         console.log(`Updating report ${report._id} status to ${finalStatus}`);
         const reportUpdatePayload: ReportUpdate = { status: finalStatus };
-        await resolveReportAPI(report._id, reportUpdatePayload, adminUser._id);
+        await resolveReportAPI(report._id, reportUpdatePayload, user._id);
 
         // Success: Notify parent and close modal
         onResolutionComplete(report._id, finalStatus);
@@ -149,6 +168,25 @@ export function ResolveReportModal({ isOpen, onClose, report, onResolutionComple
                  </p>
             )}
         </div>
+
+        <hr className="dark:border-gray-600"/>
+
+        {/* Add Delete Checkbox for posts and comments */}
+        {report && (report.item_type === 'post' || report.item_type === 'comment') && (
+          <div>
+            <Checkbox
+              checked={shouldDelete}
+              onChange={(e) => setShouldDelete(e.target.checked)}
+              disabled={isSubmitting}
+              color="danger"
+            >
+              Delete {report.item_type === 'post' ? 'Post' : 'Comment'}
+            </Checkbox>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              This will permanently remove the {report.item_type}.
+            </p>
+          </div>
+        )}
 
         <hr className="dark:border-gray-600"/>
 

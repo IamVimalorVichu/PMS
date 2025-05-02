@@ -393,3 +393,47 @@ export const fetchVoteStatusAPI = async (postId: string, userId: string): Promis
   const result = await response.json();
   return result;
 };
+
+export const deletePostAPI = async (postId: string, userId: string): Promise<APIResponse> => {
+  if (!postId) {
+    throw new Error("Post ID is required to delete.");
+  }
+  if (!userId) {
+    throw new Error("User ID is required to delete a post.");
+  }
+  const token = Cookies.get('access_token');
+  if (!token) {
+    throw new Error('Authentication required to delete a post.');
+  }
+
+  const headers: HeadersInit = {
+    'Accept': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  const url = `${API_BASE_URL}${COMMUNITY_ENDPOINT}/posts/${postId}/${userId}`;
+  console.log(`Deleting post at: ${url}`);
+
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    let errorDetail = `Failed to delete post ${postId} (Status: ${response.status})`;
+    try {
+      const errorData = await response.json();
+      if (response.status === 403) {
+        errorDetail = errorData.detail || "You do not have permission to delete this post.";
+      } else {
+        errorDetail = errorData.detail || errorDetail;
+      }
+    } catch { /* Ignore */ }
+    console.error("deletePostAPI error:", errorDetail);
+    throw new Error(errorDetail);
+  }
+
+  const result = await response.json();
+  console.log("Post deletion successful:", result);
+  return result;
+};

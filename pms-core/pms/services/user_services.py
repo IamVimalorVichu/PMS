@@ -297,14 +297,6 @@ class UserMgr:
             # Log error properly
             raise Exception(f"Error updating user permissions: {str(e)}")
     
-    # async def logout_user(self, user_id: str):
-    #     try:
-    #         # No need to update any DB state for logout since we use JWTs
-    #         # Just return a success response
-    #         return {
-    #             "status": "success",
-    #             "message": "User logged out successfully"
-    #       }
     async def _clear_restrictions(self, user_id: str):
         """Internal function to clear restrictions for a user."""
         print(f"Background task: Attempting to clear restrictions for user {user_id}")
@@ -344,7 +336,7 @@ class UserMgr:
         self,
         target_user_id: str,
         payload: ApplyRestrictionsPayload,
-        background_tasks: BackgroundTasks # Accept BackgroundTasks instance
+        background_tasks: BackgroundTasks
     ) -> Optional[User]:
         """
         Applies restrictions (post, comment, message) and sets an expiry time.
@@ -353,23 +345,23 @@ class UserMgr:
         update_data = {}
         restriction_end_time: Optional[datetime] = None
 
+        # Use UTC for all datetime operations
+        current_time = datetime.now(timezone.utc)
+
         # Determine restriction end time
         if payload.restriction_days is not None and payload.restriction_days > 0:
             delta = timedelta(days=payload.restriction_days)
-            restriction_end_time = datetime.now() + delta
+            restriction_end_time = current_time + delta
             update_data["restricted_until"] = restriction_end_time
-        elif payload.restriction_days == 0: # 0 days might mean indefinite restriction
-             update_data["restricted_until"] = None # Or a far future date if preferred for indefinite
-             print(f"Applying indefinite restriction (manual removal needed) for user {target_user_id}")
-        else: # restriction_days is None
-            # If no duration is set, only apply restrictions if explicitly disabling
-            # and don't set restricted_until (manual removal needed)
-             update_data["restricted_until"] = None # Ensure it's cleared if not indefinite/timed
-             print(f"Applying restrictions without time limit (manual removal needed) for user {target_user_id}")
+            print(f"Setting restriction until: {restriction_end_time}")
+        elif payload.restriction_days == 0:
+            update_data["restricted_until"] = None
+            print(f"Applying indefinite restriction for user {target_user_id}")
+        else:
+            update_data["restricted_until"] = None
+            print(f"No time limit specified for user {target_user_id}")
 
-
-        # Apply specific restrictions ONLY IF explicitly set to disable (True)
-        # If False or None, we don't necessarily enable them here, only when clearing.
+        # Apply specific restrictions
         if payload.disable_posts is True:
             update_data["can_post"] = False
         if payload.disable_comments is True:
@@ -377,19 +369,17 @@ class UserMgr:
         if payload.disable_messaging is True:
             update_data["can_message"] = False
 
-        # If nothing is being updated (e.g., payload is empty or only sets flags to false/null)
-        if not update_data or all(v is None or v is False for k, v in payload.model_dump().items() if k != 'restriction_days'):
-             # Check if only clearing restriction time
-             if "restricted_until" in update_data and update_data["restricted_until"] is None:
-                 # Allow clearing restriction time without changing permissions yet
-                 pass # Proceed with the update below to clear time
-             else:
-                print(f"No effective restrictions or duration provided for user {target_user_id}")
+        # Validate update data
+        if not update_data:
+            if "restricted_until" in update_data and update_data["restricted_until"] is None:
+                pass
+            else:
+                print(f"No effective restrictions provided for user {target_user_id}")
                 user_doc = await self.get_user(target_user_id)
                 return User(**user_doc) if user_doc else None
 
-
         try:
+            # Update user with restrictions
             updated_user_doc = await self.users_collection.find_one_and_update(
                 {"_id": ObjectId(target_user_id)},
                 {"$set": update_data},
@@ -398,27 +388,33 @@ class UserMgr:
             )
 
             if not updated_user_doc:
-                return None # User not found
+                return None
 
-            # Schedule background task ONLY if a specific end time was set
+            # Schedule background task for restriction removal
             if restriction_end_time:
-                delay_seconds = (restriction_end_time - datetime.now()).total_seconds()
+                delay_seconds = (restriction_end_time - current_time).total_seconds()
                 if delay_seconds > 0:
-                    print(f"Scheduling restriction clear task for user {target_user_id} in {delay_seconds:.0f} seconds.")
-                    # Use add_task to run the function after the response is sent
-                    background_tasks.add_task(self._clear_restrictions, target_user_id)
-                    # NOTE: FastAPI BackgroundTasks are simple fire-and-forget.
-                    # They are NOT persistent. If the server restarts before the task runs,
-                    # the task is lost. For critical scheduled tasks, use Celery, APScheduler, etc.
+                    print(f"Scheduling restriction clear task for user {target_user_id}")
+                    print(f"Current time (UTC): {current_time}")
+                    print(f"End time (UTC): {restriction_end_time}")
+                    print(f"Delay seconds: {delay_seconds:.0f}")
+                    
+                    # Add background task with proper delay
+                    background_tasks.add_task(
+                        self._clear_restrictions,
+                        target_user_id
+                    )
                 else:
-                     print(f"Restriction end time for user {target_user_id} is already in the past. Not scheduling clear task.")
-
+                    print(f"Warning: Restriction end time {restriction_end_time} is not in the future")
 
             updated_user_doc["_id"] = str(updated_user_doc["_id"])
             return User(**updated_user_doc)
 
         except bson_errors.InvalidId:
-             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid target user ID format.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid target user ID format."
+            )
         except Exception as e:
             print(f"Error applying restrictions for user {target_user_id}: {e}")
             raise Exception(f"Error applying restrictions: {str(e)}")
