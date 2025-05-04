@@ -35,6 +35,7 @@ from pms.routes.application_form import router as application_form_router
 from pms.services.drive_form_services import drive_form_mgr
 from pms.services.application_form_services import application_form_mgr
 from pms.services.post_services import post_mgr
+from pms.services.scheduler_services import scheduler_mgr
 from pms.services.comment_services import comment_mgr
 from pms.services.report_services import report_mgr
 from pms.services.direct_message_services import dm_mgr
@@ -83,6 +84,7 @@ async def lifespan(app: FastAPI):
     await comment_mgr.initialize()
     await report_mgr.initialize()
     await dm_mgr.initialize()
+    await scheduler_mgr.initialize()
     yield
     # Shutdown
     await db.close()

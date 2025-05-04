@@ -50,7 +50,7 @@ export function ResolveReportModal({ isOpen, onClose, report, onResolutionComple
       setRestrictionDays('');
       setError(null);
       setIsSubmitting(false);
-      setShouldDelete(true); // Reset delete checkbox to checked
+      setShouldDelete(false); // Reset delete checkbox to checked
       // Set initial finalStatus based on current report status if needed, or default
       setFinalStatus(report.status === 'pending' ? 'resolved' : report.status);
     }

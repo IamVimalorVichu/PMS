@@ -11,6 +11,7 @@ from pms.services.auth_services import create_access_token
 from pms.utils.utilities import util_mgr
 from bson import ObjectId, errors as bson_errors
 from fastapi import BackgroundTasks, HTTPException, logger, status
+from pms.services.scheduler_services import scheduler_mgr
 
 class UserMgr:
     def __init__(self):
@@ -340,7 +341,7 @@ class UserMgr:
     ) -> Optional[User]:
         """
         Applies restrictions (post, comment, message) and sets an expiry time.
-        Schedules a background task to clear restrictions if a duration is set.
+        Uses APScheduler to schedule restriction removal.
         """
         update_data = {}
         restriction_end_time: Optional[datetime] = None
@@ -390,22 +391,12 @@ class UserMgr:
             if not updated_user_doc:
                 return None
 
-            # Schedule background task for restriction removal
+            # Schedule restriction removal with APScheduler if there's an end time
             if restriction_end_time:
-                delay_seconds = (restriction_end_time - current_time).total_seconds()
-                if delay_seconds > 0:
-                    print(f"Scheduling restriction clear task for user {target_user_id}")
-                    print(f"Current time (UTC): {current_time}")
-                    print(f"End time (UTC): {restriction_end_time}")
-                    print(f"Delay seconds: {delay_seconds:.0f}")
-                    
-                    # Add background task with proper delay
-                    background_tasks.add_task(
-                        self._clear_restrictions,
-                        target_user_id
-                    )
-                else:
-                    print(f"Warning: Restriction end time {restriction_end_time} is not in the future")
+                await scheduler_mgr.schedule_restriction_clear(
+                    target_user_id,
+                    restriction_end_time
+                )
 
             updated_user_doc["_id"] = str(updated_user_doc["_id"])
             return User(**updated_user_doc)

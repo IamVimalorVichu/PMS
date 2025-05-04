@@ -134,5 +134,19 @@ class CommentMgr:
             print(f"Error fetching comment {comment_id}: {e}")
             # Don't raise HTTP exceptions from internal service calls usually
             return None # Indicate failure to fetch
+    
+    async def delete_comments_by_post_id(self, post_id: str) -> Dict[str, Any]:
+        """Deletes all comments associated with a specific post."""
+        try:
+            result = await self.comments_collection.delete_many({"post_id": post_id})
+            if result.deleted_count > 0:
+                return {"status": "success", "message": f"{result.deleted_count} comments deleted."}
+            else:
+                return {"status": "info", "message": "No comments found for this post."}
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                              detail=f"Error deleting comments: {str(e)}")
+
+
 # Instantiate the manager
 comment_mgr = CommentMgr()

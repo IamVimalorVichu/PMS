@@ -222,6 +222,11 @@ class PostMgr:
             if str(post["author_id"]) != user_id and user.get("role") != "admin":
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, 
                                   detail="Not authorized to delete this post.")
+            
+            # Delete comments first
+            from pms.services.comment_services import comment_mgr
+            await comment_mgr.delete_comments_by_post_id(post_id)
+
 
             # Delete the post
             result = await self.posts_collection.delete_one({"_id": ObjectId(post_id)})

@@ -61,6 +61,12 @@ class DatabaseConnection:
         if self.db is None:
             raise Exception("Database is not connected!")
         return self.db[collection_name]
+    async def get_database(self):
+        """Get the database instance."""
+        if self.db is None:
+            raise Exception("Database is not connected!")
+        return self.db
+
     
 
 
