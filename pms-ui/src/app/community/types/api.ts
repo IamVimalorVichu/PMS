@@ -3,4 +3,5 @@ export interface APIResponse {
     message: string;
     id: string;
     is_approved: boolean;
+    msg: string;
   }

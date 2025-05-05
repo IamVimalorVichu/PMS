@@ -1,7 +1,7 @@
 // src/hooks/useCompanyManagement.ts
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify'; // Using toast for feedback
-import { getCompanies, addCompany, updateCompany, deleteCompany } from './API'; // Importing API functions
+import { getCompaniesAPI, addCompanyAPI, updateCompanyAPI, deleteCompanyAPI } from './API'; // Importing API functions
 import { Company, CompanyInputData } from './types'; // Importing types
 // Define the shape of the state managed by the hook
 
@@ -52,7 +52,7 @@ export const useCompanyManagement = () => {
     const fetchCompaniesData = useCallback(async () => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const fetchedCompanies = await getCompanies();
+            const fetchedCompanies = await getCompaniesAPI();
             setState(prev => ({ ...prev, companies: fetchedCompanies, isLoading: false }));
         } catch (err) {
             console.error("Error fetching companies:", err);
@@ -160,21 +160,59 @@ export const useCompanyManagement = () => {
         
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            await addCompany(state.formData);
+            await addCompanyAPI(state.formData);
             toast.success("Company added successfully!", {
                 position: 'bottom-left',
             });
             handleCloseModals();
             await fetchCompaniesData(); // Refresh data
-        } catch (err) {
-            console.error("Error adding company:", err);
-            const errorMessage = err instanceof Error ? err.message : "Failed to add company.";
+        } catch (err: unknown) {
+            const errorMessage = (err as Error).message;
+            toast.error(errorMessage);
             setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
-            toast.error(`Error adding company: ${errorMessage}`,{
+            toast.error(errorMessage, {
                 position: 'bottom-left',
             });
         }
     }, [state.formData, fetchCompaniesData, handleCloseModals]);
+
+    const handleAdd = useCallback(async () => {
+        // Form validation for required fields
+        if (!state.formData.name.trim()) {
+            setState(prev => ({ ...prev, error: "Company Name is required" }));
+            toast.error("Company Name is required", {
+                position: 'bottom-left',
+            });
+            return;
+        }
+        
+        if (!state.formData.branch.trim()) {
+            setState(prev => ({ ...prev, error: "Branch is required" }));
+            toast.error("Branch is required", {
+                position: 'bottom-left',
+            });
+            return;
+        }
+
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        
+        try {
+            await addCompanyAPI(state.formData);
+            setState(prev => ({ ...prev, isAddModalOpen: false }));
+            await fetchCompaniesData();
+            toast.success("Company added successfully!", {
+                position: 'bottom-left',
+            });
+        } catch (err: unknown) {
+            const errorMessage = (err as Error).message;
+            setState(prev => ({ ...prev, error: errorMessage }));
+            toast.error(errorMessage, {
+                position: 'bottom-left',
+            });
+        } finally {
+            setState(prev => ({ ...prev, isLoading: false }));
+        }
+    }, [state.formData, fetchCompaniesData]);
 
     const submitUpdatedCompany = useCallback(async () => {
         // Form validation for required fields
@@ -191,7 +229,7 @@ export const useCompanyManagement = () => {
         if (!state.currentCompany?._id) return;
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            await updateCompany(state.currentCompany._id, state.editFormData);
+            await updateCompanyAPI(state.currentCompany._id, state.editFormData);
             toast.success("Company updated successfully!",{
                 position: 'bottom-left',
             });
@@ -211,7 +249,7 @@ export const useCompanyManagement = () => {
         if (!state.currentCompany?._id) return;
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            await deleteCompany(state.currentCompany._id);
+            await deleteCompanyAPI(state.currentCompany._id);
             toast.success("Company deleted successfully!", {
                 position: 'bottom-left',
             });
@@ -240,6 +278,7 @@ export const useCompanyManagement = () => {
         handleEditFormChange,
         handleSearchChange,
         submitNewCompany,
+        handleAdd,
         submitUpdatedCompany,
         confirmDeletion,
     };

@@ -78,18 +78,36 @@ class CompanyMgr:
     async def add_company(self, company: Company) -> Company:
         try:
             await self.db.connect()
+            
+            # Check for existing company with same name and branch
+            existing = await self.companies_collection.find_one({
+                "name": company.name,
+                "branch": company.branch
+            })
+            
+            if existing:
+                error = self._create_error_response(
+                    "DUPLICATE_COMPANY",
+                    f"Company with name '{company.name}' and branch '{company.branch}' already exists"
+                )
+                raise Exception(error)
+            
             company_data = company.model_dump()
             response = await self.companies_collection.insert_one(company_data)
             
             # Get the inserted document with its ID
             inserted_company = await self.companies_collection.find_one({"_id": response.inserted_id})
-            inserted_company["_id"] = str(inserted_company["_id"])  # Convert ObjectId to string
+            inserted_company["_id"] = str(inserted_company["_id"])
             
             return inserted_company
             
         except Exception as e:
+            if isinstance(e, Exception) and hasattr(e, 'args') and e.args and isinstance(e.args[0], dict) and 'status' in e.args[0]:
+                raise
+            # Otherwise create a new error
+            print("Not already our formatted error, creating a new one")
             error = self._create_error_response(
-                "COMPANY_ADD_ERROR", 
+                "COMPANY_ADD_ERROR",
                 f"Error adding company: {str(e)}"
             )
             raise Exception(error)
@@ -105,8 +123,25 @@ class CompanyMgr:
                     f"Invalid company ID format: {company_id}"
                 )
                 raise Exception(error)
-                
+
             company_data = company.model_dump(exclude_none=True)
+
+            # If name or branch is being updated, check for duplicates
+            if "name" in company_data or "branch" in company_data:
+                current = await self.companies_collection.find_one({"_id": object_id})
+                search = {
+                    "name": company_data.get("name", current["name"]),
+                    "branch": company_data.get("branch", current["branch"]),
+                    "_id": {"$ne": object_id}
+                }
+                existing = await self.companies_collection.find_one(search)
+                if existing:
+                    error = self._create_error_response(
+                        "DUPLICATE_COMPANY",
+                        f"Company with name '{search['name']}' and branch '{search['branch']}' already exists"
+                    )
+                    raise Exception(error)
+                
             response = await self.companies_collection.find_one_and_update(
                 {"_id": object_id},
                 {"$set": company_data},
@@ -121,17 +156,15 @@ class CompanyMgr:
                 )
                 raise Exception(error)
                 
-            response["_id"] = str(response["_id"])  # Convert ObjectId to string
+            response["_id"] = str(response["_id"])
             return {
                 "status": "success",
                 "message": "Company updated successfully",
                 "data": response
             }
         except Exception as e:
-            # If it's already our formatted error, re-raise it
             if isinstance(e, Exception) and hasattr(e, 'args') and e.args and isinstance(e.args[0], dict) and 'status' in e.args[0]:
                 raise
-            # Otherwise create a new error
             error = self._create_error_response(
                 "COMPANY_UPDATE_ERROR", 
                 f"Error updating company: {str(e)}"

@@ -24,12 +24,7 @@ async def get_companies():
          # Fallback for unexpected errors
          raise HTTPException(
              status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-             detail={
-                 "status": "error",
-                 "code": "INTERNAL_SERVER_ERROR",
-                 "detail": str(e),
-                 "timestamp": datetime.utcnow().isoformat()
-             }
+             detail=f"{str(e)}"
          )
    
 @router.get("/get/{company_id}", response_model=Company)

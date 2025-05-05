@@ -30,9 +30,8 @@ interface GeneralDetailsTabProps {
 // Helper to format Date to YYYY-MM-DD string for input[type=date]
 const formatDateForInput = (date: Date | null): string => {
     if (!date) return "";
-    // Ensure it's a Date object before calling methods
     const d = date instanceof Date ? date : new Date(date);
-     if (isNaN(d.getTime())) return ""; // Handle invalid date strings/objects
+     if (isNaN(d.getTime())) return ""; 
     return d.toISOString().split('T')[0];
 };
 

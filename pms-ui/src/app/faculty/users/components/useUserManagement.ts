@@ -11,6 +11,7 @@ import {
   updateUserAPI,
   deleteUserAPI
 } from './API';
+import { toast } from 'react-toastify';
 
 // Default form data
 const DEFAULT_FORM_DATA: UserFormData = {
@@ -121,10 +122,12 @@ export const useUserManagement = () => {
     try {
       await addUserAPI(formData);
       setIsAddModalOpen(false);
-      fetchUsers();
+      await fetchUsers();
+      toast.success("User added successfully");
     } catch (err: unknown) {
-      setError((err as Error).message);
-      console.error("Error adding user:", (err as Error).message);
+      const errorMessage = (err as Error).message;
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

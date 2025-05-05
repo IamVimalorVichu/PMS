@@ -10,7 +10,7 @@ class BaseConfig:
         self.DATABASE_NAME = os.getenv("DATABASE_NAME")
         self.ALGORITHM = os.getenv("ALGORITHM")
         self.ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-        
+
         # Uploads configuration
         self.UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")  # Default: 'uploads'
         os.makedirs(self.UPLOAD_DIR, exist_ok=True)  # Ensure folder exists

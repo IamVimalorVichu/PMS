@@ -163,20 +163,97 @@ function CompaniesPage() {
                 <ModalContent>
                     <ModalHeader>Add New Company</ModalHeader>
                     <ModalBody>
-                        {/* Reuse a form component later if needed */}
-                        <Input autoFocus label="Company Name *" value={formData.name} onValueChange={v => handleFormChange('name', v)} className="mb-3" isRequired />
-                        <Input label="Website" value={formData.site} onValueChange={v => handleFormChange('site', v)} className="mb-3" placeholder="https://example.com"/>
-                        <Input label="Branch *" value={formData.branch} onValueChange={v => handleFormChange('branch', v)} className="mb-3" isRequired />
-                        <Input label="Description" value={formData.desc} onValueChange={v => handleFormChange('desc', v)} className="mb-3" />
-                        <Input label="Contact Email" type="email" value={formData.email || ""} onValueChange={v => handleFormChange('email', v)} className="mb-3" />
-                        <Input label="Contact Phone" value={formData.ph_no} onValueChange={v => handleFormChange('ph_no', v)} className="mb-3" />
-
-                         {error && <p className="mb-2 text-sm text-red-500">{error}</p>}
-
-                        <div className="mt-4 flex justify-end gap-2">
-                            <Button variant="light" onPress={handleCloseModals} disabled={isLoading}>Cancel</Button>
-                            <Button color="primary" onPress={submitNewCompany} isLoading={isLoading}>Submit</Button>
-                        </div>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            submitNewCompany();
+                        }} className="space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <Input
+                                    label="Company Name"
+                                    variant="bordered"
+                                    value={formData.name}
+                                    onValueChange={v => handleFormChange('name', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="Enter company name"
+                                    isRequired
+                                />
+                                <Input
+                                    label="Branch"
+                                    variant="bordered"
+                                    value={formData.branch}
+                                    onValueChange={v => handleFormChange('branch', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="Enter branch"
+                                    isRequired
+                                />
+                            </div>
+                            
+                            <Input
+                                label="Description"
+                                variant="bordered"
+                                value={formData.desc}
+                                onValueChange={v => handleFormChange('desc', v)}
+                                className="w-full transition-all duration-200 focus:scale-[1.01]"
+                                labelPlacement="outside"
+                                placeholder="Enter company description"
+                            />
+                            
+                            <div className="grid grid-cols-2 gap-6">
+                                <Input
+                                    label="Website"
+                                    variant="bordered"
+                                    value={formData.site}
+                                    onValueChange={v => handleFormChange('site', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="https://"
+                                />
+                                <Input
+                                    label="Email"
+                                    type="email"
+                                    variant="bordered"
+                                    value={formData.email || ""}
+                                    onValueChange={v => handleFormChange('email', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="company@example.com"
+                                />
+                            </div>  
+                            <Input
+                                label="Phone Number"
+                                variant="bordered"
+                                type="tel"
+                                minLength={10}
+                                maxLength={14}
+                                value={formData.ph_no}
+                                onValueChange={v => handleFormChange('ph_no', v)}
+                                className="w-full transition-all duration-200 focus:scale-[1.01]"
+                                labelPlacement="outside"
+                                placeholder="+91"
+                            />
+                            
+                            {error && <p className="text-sm text-red-500">{error}</p>}
+                            
+                            <div className="flex justify-end gap-2">
+                                <Button 
+                                    variant="light" 
+                                    onPress={handleCloseModals} 
+                                    disabled={isLoading}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    type="submit"
+                                    color="primary" 
+                                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                                    isLoading={isLoading}
+                                >
+                                    Add Company
+                                </Button>
+                            </div>
+                        </form>
                     </ModalBody>
                 </ModalContent>
             </Modal>
@@ -186,19 +263,98 @@ function CompaniesPage() {
                 <ModalContent>
                     <ModalHeader>Edit Company: {currentCompany?.name}</ModalHeader>
                     <ModalBody>
-                        <Input autoFocus label="Company Name *" value={editFormData.name} onValueChange={v => handleEditFormChange('name', v)} className="mb-3" isRequired />
-                        <Input label="Website" value={editFormData.site} onValueChange={v => handleEditFormChange('site', v)} className="mb-3" placeholder="https://example.com"/>
-                        <Input label="Branch *" value={editFormData.branch} onValueChange={v => handleEditFormChange('branch', v)} className="mb-3" isRequired />
-                        <Input label="Description" value={editFormData.desc} onValueChange={v => handleEditFormChange('desc', v)} className="mb-3" />
-                        <Input label="Contact Email" type="email" value={editFormData.email || ""} onValueChange={v => handleEditFormChange('email', v)} className="mb-3" />
-                        <Input label="Contact Phone" value={editFormData.ph_no} onValueChange={v => handleEditFormChange('ph_no', v)} className="mb-3" />
-
-                         {error && <p className="mb-2 text-sm text-red-500">{error}</p>}
-
-                        <div className="mt-4 flex justify-end gap-2">
-                            <Button variant="light" onPress={handleCloseModals} disabled={isLoading}>Cancel</Button>
-                            <Button color="primary" onPress={submitUpdatedCompany} isLoading={isLoading}>Update</Button>
-                        </div>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            submitUpdatedCompany();
+                        }} className="space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <Input
+                                    label="Company Name"
+                                    variant="bordered"
+                                    value={editFormData.name}
+                                    onValueChange={v => handleEditFormChange('name', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="Enter company name"
+                                    isRequired
+                                />
+                                <Input
+                                    label="Branch"
+                                    variant="bordered"
+                                    value={editFormData.branch}
+                                    onValueChange={v => handleEditFormChange('branch', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="Enter branch"
+                                    isRequired
+                                />
+                            </div>
+                            
+                            <Input
+                                label="Description"
+                                variant="bordered"
+                                value={editFormData.desc}
+                                onValueChange={v => handleEditFormChange('desc', v)}
+                                className="w-full transition-all duration-200 focus:scale-[1.01]"
+                                labelPlacement="outside"
+                                placeholder="Enter company description"
+                            />
+                            
+                            <div className="grid grid-cols-2 gap-6">
+                                <Input
+                                    label="Website"
+                                    variant="bordered"
+                                    value={editFormData.site}
+                                    onValueChange={v => handleEditFormChange('site', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="https://"
+                                />
+                                <Input
+                                    label="Email"
+                                    type="email"
+                                    variant="bordered"
+                                    value={editFormData.email || ""}
+                                    onValueChange={v => handleEditFormChange('email', v)}
+                                    className="w-full"
+                                    labelPlacement="outside"
+                                    placeholder="company@example.com"
+                                />
+                            </div>
+                            
+                            <Input
+                                label="Phone Number"
+                                variant="bordered"
+                                type="tel"
+                                minLength={10}
+                                maxLength={14}
+                                value={editFormData.ph_no}
+                                onValueChange={v => handleEditFormChange('ph_no', v)}
+                                className="w-full transition-all duration-200 focus:scale-[1.01]"
+                                labelPlacement="outside"
+                                placeholder="+91"
+                            />
+                            
+                            {error && <p className="text-sm text-red-500">{error}</p>}
+                            
+                            <div className="flex justify-end gap-2">
+                                <Button 
+                                    variant="light" 
+                                    onPress={handleCloseModals} 
+                                    disabled={isLoading}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    type="submit"
+                                    color="primary" 
+                                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                                    isLoading={isLoading}
+                                >
+                                    Update Company
+                                </Button>
+                            </div>
+                        </form>
                     </ModalBody>
                 </ModalContent>
             </Modal>

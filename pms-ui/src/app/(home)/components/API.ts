@@ -17,12 +17,16 @@ export const loginUserAPI = async (email: string, password: string) => {
 }
 
 export const resetPasswordAPI = async (email: string, password: string) => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/users/reset-password`, {
-    method: "POST",
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/reset-password`, {
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password }),
+    // Send data as an object
+    body: JSON.stringify({ 
+      email: email,
+      password: password 
+    }),
   });
 
   if (!response.ok) {

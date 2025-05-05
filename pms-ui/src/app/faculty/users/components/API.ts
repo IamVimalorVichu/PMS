@@ -11,11 +11,12 @@ export const fetchUsersAPI = async (): Promise<User[]> => {
     method: "GET",
   });
   
+  const data = await response.json();
   if (!response.ok) {
-    throw new Error(`Server returned with an error: ${response.status}`);
+    throw new Error(typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail);
   }
   
-  return await response.json();
+  return data;
 };
 
 /**
@@ -29,12 +30,17 @@ export const addUserAPI = async (userData: UserFormData): Promise<User> => {
     },
     body: JSON.stringify(userData),
   });
+
+  const data = await response.json();
   
   if (!response.ok) {
-    throw new Error(`Failed to add user: ${response.status}`);
+    if (Array.isArray(data.detail)) {
+      throw new Error(data.detail.map((err: { msg: string }) => err.msg).join('\n'));
+    }
+    throw new Error(data.detail);
   }
-  
-  return await response.json();
+
+  return data;
 };
 
 /**
@@ -48,12 +54,14 @@ export const updateUserAPI = async (userId: string, userData: UserFormData): Pro
     },
     body: JSON.stringify(userData),
   });
+
+  const data = await response.json();
   
   if (!response.ok) {
-    throw new Error(`Failed to update user: ${response.status}`);
+    throw new Error(typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail);
   }
-  
-  return await response.json();
+
+  return data;
 };
 
 /**
@@ -63,10 +71,12 @@ export const deleteUserAPI = async (userId: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/user/delete/${userId}`, {
     method: "DELETE",
   });
+
+  const data = await response.json();
   
   if (!response.ok) {
-    throw new Error(`Failed to delete user: ${response.status}`);
+    throw new Error(typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail);
   }
-  
-  return await response.json();
+
+  return data;
 };

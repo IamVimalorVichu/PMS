@@ -1,150 +1,93 @@
 // src/services/API.ts
 
-import { Company, CompanyInputData, ApiError } from "./types"; // Adjust the import path as necessary
+import { Company, CompanyInputData } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const COMPANY_ENDPOINT = `${API_BASE_URL}/company`; 
+const COMPANY_ENDPOINT = `${API_BASE_URL}/company`;
 
 /**
- * Fetches all companies from the API.
+ * Fetches all companies from the API
  */
-export const getCompanies = async (): Promise<Company[]> => {
-    try {
-        const response = await fetch(`${COMPANY_ENDPOINT}/get`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-
-        if (!response.ok) {
-            let errorData;
-            try {
-                errorData = await response.json();
-            } catch {
-                throw new ApiError(`Server responded with status: ${response.status}`, response.status);
-            }
-            const message = errorData?.message || errorData?.detail || `Failed to fetch companies (${response.status})`;
-            throw new ApiError(message, response.status, errorData);
-        }
-
-        return await response.json() as Company[];
-
-    } catch (err) {
-        console.error("API Error [getCompanies]:", err);
-        if (err instanceof ApiError) {
-            throw err;
-        }
-        throw new Error(`Failed to fetch companies: ${err instanceof Error ? err.message : String(err)}`);
-    }
+export const getCompaniesAPI = async (): Promise<Company[]> => {
+  const response = await fetch(`${COMPANY_ENDPOINT}/get`, {
+    method: "GET",
+  });
+  
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail);
+  }
+  
+  return data;
 };
 
 /**
- * Adds a new company via the API.
+ * Adds a new company
  */
-export const addCompany = async (companyData: CompanyInputData) => {
-    try {
-        const response = await fetch(`${COMPANY_ENDPOINT}/add`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(companyData),
-        });
+export const addCompanyAPI = async (companyData: CompanyInputData): Promise<Company> => {
+  const response = await fetch(`${COMPANY_ENDPOINT}/add`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(companyData),
+  });
 
-        if (!response.ok) {
-            let errorData;
-            try {
-                errorData = await response.json();
-            } catch {
-                throw new ApiError(`Server responded with status: ${response.status}`, response.status);
-            }
-            const message = errorData?.message || errorData?.detail || `Failed to add company (${response.status})`;
-            throw new ApiError(message, response.status, errorData);
-        }
-
-        return await response.json();
-
-    } catch (err) {
-        console.error("API Error [addCompany]:", err);
-        if (err instanceof ApiError) {
-            throw err;
-        }
-        throw new Error(`Failed to add company: ${err instanceof Error ? err.message : String(err)}`);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    // Handle structured error responses
+    if (typeof data.detail === 'object') {
+      // Only extract the 'detail' field from the error response
+      throw new Error(data.detail.detail || 'Failed to add company');
     }
+    // Handle validation error arrays
+    if (Array.isArray(data.detail)) {
+      const errorMessage = data.detail.map((err: { msg: string }) => err.msg).join('\n');
+      throw new Error(errorMessage);
+    }
+    // Default error fallback
+    throw new Error(data.detail || 'Failed to add company');
+  }
+
+  return data;
 };
 
 /**
- * Updates an existing company via the API.
+ * Updates an existing company
  */
-export const updateCompany = async (id: string, companyData: Partial<CompanyInputData>) => {
-    try {
-        const response = await fetch(`${COMPANY_ENDPOINT}/update/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(companyData),
-        });
+export const updateCompanyAPI = async (companyId: string, companyData: CompanyInputData): Promise<Company> => {
+  const response = await fetch(`${COMPANY_ENDPOINT}/update/${companyId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(companyData),
+  });
 
-        if (!response.ok) {
-            let errorData;
-            try {
-                errorData = await response.json();
-            } catch {
-                throw new ApiError(`Server responded with status: ${response.status}`, response.status);
-            }
-            const message = errorData?.message || errorData?.detail || `Failed to update company (${response.status})`;
-            throw new ApiError(message, response.status, errorData);
-        }
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail);
+  }
 
-        return await response.json();
-
-    } catch (err) {
-        console.error("API Error [updateCompany]:", err);
-        if (err instanceof ApiError) {
-            throw err;
-        }
-        throw new Error(`Failed to update company: ${err instanceof Error ? err.message : String(err)}`);
-    }
+  return data;
 };
 
 /**
- * Deletes a company via the API.
+ * Deletes a company
  */
-export const deleteCompany = async (id: string) => {
-    try {
-        const response = await fetch(`${COMPANY_ENDPOINT}/delete/${id}`, {
-            method: "DELETE"
-        });
+export const deleteCompanyAPI = async (companyId: string): Promise<void> => {
+  const response = await fetch(`${COMPANY_ENDPOINT}/delete/${companyId}`, {
+    method: "DELETE",
+  });
 
-        if (!response.ok) {
-            let errorData;
-            try {
-                if (response.status !== 204) {
-                    errorData = await response.json();
-                } else {
-                    throw new ApiError(`Server responded with status: ${response.status}`, response.status);
-                }
-            } catch {
-                throw new ApiError(`Server responded with status: ${response.status}`, response.status);
-            }
-            const message = errorData?.message || errorData?.detail || `Failed to delete company (${response.status})`;
-            throw new ApiError(message, response.status, errorData);
-        }
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(typeof data.detail === 'object' ? JSON.stringify(data.detail) : data.detail);
+  }
 
-        if (response.status === 204) {
-            return { success: true };
-        }
-        
-        return await response.json();
-
-    } catch (err) {
-        console.error("API Error [deleteCompany]:", err);
-        if (err instanceof ApiError) {
-            throw err;
-        }
-        throw new Error(`Failed to delete company: ${err instanceof Error ? err.message : String(err)}`);
-    }
+  return data;
 };
 

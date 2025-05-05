@@ -35,6 +35,13 @@ class UserMgr:
     async def add_user(self, user: User):
         try:
             user_data = user.model_dump()
+            if "email" in user_data:
+                existing_user = await self.users_collection.find_one({"email": user_data["email"]})
+                if existing_user:
+                    raise Exception("Email already exists")
+            if "password" not in user_data or not user_data["password"]:
+                user_data["password"] = util_mgr.generate_random_password()
+            unhashed_password = user_data["password"]
             hashed_password = util_mgr.hash_password(user_data["password"])
             user_data["password"] = hashed_password
             response = await self.users_collection.insert_one(user_data)
@@ -53,6 +60,13 @@ class UserMgr:
                 }[user_data["role"]]
 
                 await role_mgr.sync_from_user(user_data, user_id)
+                await util_mgr.send_email(
+                    email=user_data["email"],
+                    subject="Welcome to the Platform",
+                    body=f"""Hello {user_data['first_name']},\n\nYour account has been created successfully. 
+                      Your temporary password is: {unhashed_password}.
+                      Your status will be inactive until a new password is set.\n\nBest regards,\nTeam"""
+                )
 
             return {
                 "status": "success",
@@ -133,6 +147,27 @@ class UserMgr:
             return updated_user
         except Exception as e:
             raise Exception(f"Error updating user: {str(e)}")
+    
+    async def reset_password(self, email: str, password: str):
+        try:
+            hashed_password = util_mgr.hash_password(password)
+            print(email)
+            print(password)
+            updated_user = await self.users_collection.find_one_and_update(
+                {"email": email},
+                {"$set": {
+                    "password": hashed_password,
+                    "status": "active"
+                }},
+                return_document=ReturnDocument.AFTER
+            )
+            
+            if not updated_user:
+                raise Exception("User not found")
+                
+            return {"status": "success", "message": "Password reset successful"}
+        except Exception as e:
+            raise Exception(f"Failed to reset password: {str(e)}")
 
     async def delete_user(self, user_id: str):
         try:

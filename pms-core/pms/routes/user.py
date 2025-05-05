@@ -6,9 +6,15 @@ from pms.services.user_services import user_mgr
 from pymongo import ReturnDocument
 from typing import List, Optional
 from bson import ObjectId
+from pydantic import BaseModel
 
 
 router = APIRouter()
+
+# Add this class for request validation
+class PasswordResetRequest(BaseModel):
+    email: str
+    password: str
 
 
 @router.get("/get", response_model=List[User])
@@ -30,7 +36,7 @@ async def add_user(user: User):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error adding user: {str(e)}"
+            detail=f"{str(e)}"
         )
     
 @router.get("/get/{user_id}", response_model=User)
@@ -88,4 +94,17 @@ async def search_for_users(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error searching users: {str(e)}"
+        )
+    
+@router.patch("/reset-password")
+async def reset_password(reset_data: PasswordResetRequest):
+    try:
+        print(f"Resetting password for {reset_data.email}")
+        print(f"New password: {reset_data.password}")
+        result = await user_mgr.reset_password(reset_data.email, reset_data.password)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error resetting password: {str(e)}"
         )
