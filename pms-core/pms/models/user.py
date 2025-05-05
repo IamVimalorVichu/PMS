@@ -15,7 +15,7 @@ class User(BaseModel):
     last_name: Optional[str] = ""
     gender: Optional[Literal["Male", "Female", "Other"]] = "Male"
     email: Optional[EmailStr] = ""
-    ph_no: Annotated[str, constr(min_length=10, max_length=14)]
+    ph_no: Optional[str] = Field(None, min_length=10, max_length=14)
     password: Optional[str] = "" # Hashed password stored in DB - maybe not needed
     role: Literal["admin", "faculty", "student", "alumni"]
     status: Optional[Literal["Inactive", "Active"]] = "Inactive"
@@ -38,7 +38,7 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = None
     gender: Optional[Literal["Male", "Female", "Other"]] = None
     email: Optional[EmailStr] = None
-    ph_no: Optional[Annotated[str, constr(min_length=10, max_length=14)]] = None
+    ph_no: Optional[str] = Field(None, min_length=10, max_length=14)
     password: Optional[str] = None # Plain text password for update, will be hashed
     role: Optional[Literal["admin", "faculty", "student", "alumni"]] = None
     status: Optional[Literal["Inactive", "Active"]] = None

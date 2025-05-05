@@ -1,8 +1,9 @@
+from datetime import datetime
 import random, string
 from passlib.context import CryptContext
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr
-from typing import List
+from typing import Any, Dict, List
 import os
 from dotenv import load_dotenv
 
@@ -48,5 +49,13 @@ class UtilMgr:
         
         await self.fastmail.send_message(message)
 
+    def _create_error_response(self, code: str, detail: str) -> Dict[str, Any]:
+        """Create a standardized error response"""
+        return {
+            "status": "error",
+            "code": code,
+            "detail": detail,
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 util_mgr = UtilMgr()

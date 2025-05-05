@@ -15,7 +15,7 @@ async def add_student(student: Student):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error adding student: {str(e)}"
+            detail=f"{str(e)}"
         )
     
 @router.get("/get", response_model=List[Student])
@@ -57,7 +57,7 @@ async def update_student(student_id: str, student: StudentUpdate):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating student: {str(e)}"
+            detail=f"{str(e)}"
         )
 @router.delete("/delete/{student_id}")
 async def delete_student(student_id: str):

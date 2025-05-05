@@ -6,6 +6,7 @@ from pymongo import ReturnDocument
 from bson import ObjectId
 from pms.services.user_services import user_mgr
 from pms.models.user import User, UserUpdate
+from pms.utils.utilities import UtilMgr
 
 class StudentMgr:
     def __init__(self):
@@ -27,40 +28,54 @@ class StudentMgr:
         
     async def add_student(self, student: Student):
         try:
+            # First check if student with this email already exists
+            existing_student = await self.students_collection.find_one({"email": student.email})
+            if existing_student:
+                raise Exception("A student with this email already exists")
+
             # First create the user
-            user = User(
-                first_name=student.first_name,
-                middle_name=student.middle_name,
-                last_name=student.last_name,
-                email=student.email,
-                ph_no=student.ph_no,
-                role="student",
-                gender=student.gender,
-                status="Active"  # Set default status
-            )
-            
-            # Add user first
-            user_response = await user_mgr.add_user(user)
-            user_id = user_response["id"]
-            
-            # Add user_id to student data
-            student_data = student.model_dump()
-            student_data["user_id"] = user_id
-            student_data["created_at"] = datetime.now()
-            student_data["updated_at"] = datetime.now()
-            
-            # Create student record
-            response = await self.students_collection.insert_one(student_data)
-            
-            return {
-                "status": "success",
-                "message": f"Student added with id: {response.inserted_id}",
-                "student_id": str(response.inserted_id),
-                "user_id": user_id
+            if student.gender not in ["Male","Female","Other"]:
+                student.gender = None
+
+            # Create user data dict with only required fields
+            user_data = {
+                "first_name": student.first_name,
+                "email": student.email,
+                "role": "student",
+                "status": "Inactive"
             }
+
+            # Add optional fields only if they have values
+            if student.middle_name is not None:
+                user_data["middle_name"] = student.middle_name
+            if student.last_name is not None:
+                user_data["last_name"] = student.last_name
+            if student.ph_no is not None and student.ph_no.strip():  
+                user_data["ph_no"] = student.ph_no
+            if student.gender is not None:
+                user_data["gender"] = student.gender
+
+            # Create User object with filtered data
+            user = User(**user_data)
+            
+            try:
+                # Add user first
+                user_response = await user_mgr.add_user(user)
+                user_id = user_response["id"]
+
+                return {
+                    "status": "success",
+                    "message": "User created successfully",
+                    "user_id": user_id
+                }
+                
+            except Exception as inner_e:
+                # If student creation fails, rollback user creation
+                if 'user_id' in locals():
+                    await user_mgr.delete_user(user_id)
+                raise inner_e
+
         except Exception as e:
-            if 'user_id' in locals():
-                await user_mgr.delete_user(user_id)
             raise Exception(f"Error adding student: {str(e)}")
     
     async def get_student(self, student_id: str):
@@ -101,7 +116,7 @@ class StudentMgr:
             await user_mgr.update_user(existing_student["user_id"], user_data)
 
             # Update student
-            updated_data = student.model_dump(exclude_none=True)
+            updated_data = student.model_dump(exclude_unset=True)
             updated_data["updated_at"] = datetime.now()
             
             updated_student = await self.students_collection.find_one_and_update(
@@ -116,7 +131,15 @@ class StudentMgr:
             updated_student["_id"] = str(updated_student["_id"])
             return updated_student
         except Exception as e:
-            raise Exception(f"Error updating student: {str(e)}")
+            if isinstance(e, Exception) and hasattr(e, 'args') and e.args and isinstance(e.args[0], dict) and 'status' in e.args[0]:
+                raise
+            # Otherwise create a new error
+            print("Not already our formatted error, creating a new one")
+            error = UtilMgr._create_error_response(
+                UtilMgr,code="UPDATE_STUDENT_ERROR",
+                detail=f"Error updating student: {str(e)}"
+            )
+            raise Exception(error)
         
     async def delete_student(self, student_id: str):
         try:
@@ -236,4 +259,3 @@ class StudentMgr:
             raise Exception(f"Error deleting student record: {str(e)}")
 
 student_mgr = StudentMgr()
-               

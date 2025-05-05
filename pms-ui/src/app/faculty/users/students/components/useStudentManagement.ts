@@ -16,6 +16,7 @@ interface StudentManagementState {
     formData: StudentInputData; // For the add form
     editFormData: StudentInputData; // For the edit form
     searchTerm: string;
+    isSubmitting: boolean; // Add this
 }
 
 // Initial state values
@@ -25,6 +26,7 @@ const initialFormData: StudentInputData = {
     last_name: "",
     email: "",
     ph_no: "",
+    gender: "Select",
     program: "MCA",
     status: "Active",
     state: "Kerala",
@@ -46,6 +48,7 @@ export const useStudentManagement = () => {
         formData: initialFormData,
         editFormData: initialFormData,
         searchTerm: "",
+        isSubmitting: false, // Add this
     });
 
     // --- Data Fetching ---
@@ -86,22 +89,22 @@ export const useStudentManagement = () => {
             currentStudent: student,
             editFormData: { // Populate edit form
                 first_name: student.first_name,
-                middle_name: student.middle_name || "",
-                last_name: student.last_name || "",
-                dob: student.dob,
-                address: student.address || "",
-                city: student.city || "",
+                middle_name: student.middle_name || undefined,
+                last_name: student.last_name || undefined,
+                dob: student.dob || undefined,
+                address: student.address || undefined,
+                city: student.city || undefined,
                 state: student.state || "Kerala",
-                district: student.district || "",
-                adm_no: student.adm_no || "",
-                reg_no: student.reg_no || "",
-                gender: student.gender,
-                email: student.email,
-                alt_email: student.alt_email,
-                ph_no: student.ph_no || "",
-                alt_ph: student.alt_ph || "",
-                join_date: student.join_date,
-                end_date: student.end_date,
+                district: student.district || undefined,
+                adm_no: student.adm_no || undefined,
+                reg_no: student.reg_no || undefined,
+                gender: student.gender || undefined,
+                email: student.email ,
+                alt_email: student.alt_email || undefined ,
+                ph_no: student.ph_no || undefined,
+                alt_ph: student.alt_ph || undefined,
+                join_date: student.join_date || undefined,
+                end_date: student.end_date || undefined,
                 program: student.program || "MCA",
                 status: student.status || "Active",
             },
@@ -130,15 +133,17 @@ export const useStudentManagement = () => {
     }, []);
 
     // --- Form Handling ---
-    const handleFormChange = useCallback((field: keyof StudentInputData, value: any) => {
+    const handleFormChange = useCallback((field: keyof StudentInputData, value: unknown) => {
         setState(prev => ({
             ...prev,
-            formData: { ...prev.formData, [field]: value },
-            error: (field === 'first_name' || field === 'email') ? null : prev.error
+            formData: {  // Changed from editFormData to formData
+                ...prev.formData,
+                [field]: value || null
+            }
         }));
     }, []);
 
-    const handleEditFormChange = useCallback((field: keyof StudentInputData, value: any) => {
+    const handleEditFormChange = useCallback((field: keyof StudentInputData, value: unknown) => {
         setState(prev => ({
             ...prev,
             editFormData: { ...prev.editFormData, [field]: value },
@@ -154,38 +159,30 @@ export const useStudentManagement = () => {
     // --- CRUD Operations ---
     // Add new student with validation
     const submitNewStudent = useCallback(async () => {
-        // Form validation for required fields
-        if (!state.formData.first_name.trim()) {
-            setState(prev => ({ ...prev, error: "First Name is required" }));
-            return;
-        }
-        
-        if (!state.formData.email.trim()) {
-            setState(prev => ({ ...prev, error: "Email is required" }));
-            return;
-        }
-        
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        if (state.isSubmitting) return;
+
+        setState(prev => ({ ...prev, isLoading: true, error: null, isSubmitting: true }));
         try {
-            await addStudent(state.formData);
-            toast.success("Student added successfully!", {
-                position: 'bottom-left',
-            });
-            handleCloseModals();
-            await fetchStudentsData(); // Refresh data
-        } catch (err) {
-            console.error("Error adding student:", err);
-            const errorMessage = err instanceof Error ? err.message : "Failed to add student.";
-            setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
-            toast.error(`Error adding student: ${errorMessage}`, {
-                position: 'bottom-left',
-            });
+            const result = await addStudent(state.formData);
+            if (result) {  // Only proceed if we get a response
+                toast.success("Student added successfully!");
+                handleCloseModals();
+                await fetchStudentsData();
+            }
+        } catch (err: unknown) {
+            const errorMessage = (err as Error).message;
+            setState(prev => ({ ...prev, error: errorMessage }));
+            toast.error(errorMessage);
+        } finally {
+            setState(prev => ({ ...prev, isLoading: false, isSubmitting: false }));
         }
-    }, [state.formData, fetchStudentsData, handleCloseModals]);
+    }, [state.formData, state.isSubmitting, fetchStudentsData, handleCloseModals]);
 
     // Update student with validation
     const submitUpdatedStudent = useCallback(async () => {
-        // Form validation for required fields
+        if (!state.currentStudent?._id) return;
+        
+        // Validate required fields
         if (!state.editFormData.first_name.trim()) {
             setState(prev => ({ ...prev, error: "First Name is required" }));
             return;
@@ -195,23 +192,19 @@ export const useStudentManagement = () => {
             setState(prev => ({ ...prev, error: "Email is required" }));
             return;
         }
-        
-        if (!state.currentStudent?._id) return;
+
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             await updateStudent(state.currentStudent._id, state.editFormData);
-            toast.success("Student updated successfully!", {
-                position: 'bottom-left',
-            });
+            toast.success("Student updated successfully!");
             handleCloseModals();
-            await fetchStudentsData(); // Refresh data
-        } catch (err) {
-            console.error("Error updating student:", err);
-            const errorMessage = err instanceof Error ? err.message : "Failed to update student.";
+            await fetchStudentsData();
+        } catch (err: unknown) {
+            const errorMessage = (err as Error).message;
             setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
-            toast.error(`Error updating student: ${errorMessage}`, {
-                position: 'bottom-left',
-            });
+            toast.error(errorMessage);
+        } finally {
+            setState(prev => ({ ...prev, isLoading: false }));
         }
     }, [state.currentStudent, state.editFormData, fetchStudentsData, handleCloseModals]);
 

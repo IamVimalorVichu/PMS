@@ -10,7 +10,7 @@ class Student(BaseModel):
     first_name:str
     middle_name: Optional[str]=""
     last_name:Optional[str]=""
-    dob:Optional[datetime]
+    dob:Optional[datetime] = None
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = "Kerala"

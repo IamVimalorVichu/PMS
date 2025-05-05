@@ -13,7 +13,7 @@ export interface Student {
   district?: string;
   adm_no?: string;
   reg_no?: string;
-  gender?: 'Male' | 'Female' | 'Other';
+  gender?: "Male" | "Female" | "Other" | "Select" | null;
   email: string;
   alt_email?: string;
   ph_no?: string;
@@ -27,25 +27,28 @@ export interface Student {
 }
 
 export interface StudentInputData {
+  // Required fields
   first_name: string;
+  email: string;
+  
+  // Optional fields - all others
   middle_name?: string;
   last_name?: string;
-  dob?: string; // ISO date string
+  dob?: string;
   address?: string;
   city?: string;
   state?: string;
   district?: string;
   adm_no?: string;
   reg_no?: string;
-  gender: 'Male' | 'Female' | 'Other';
-  email: string;
+  gender?: "Male" | "Female" | "Other" | "Select" | null;
   alt_email?: string;
   ph_no?: string;
   alt_ph?: string;
-  join_date?: string; // ISO date string
-  end_date?: string; // ISO date string
-  program: 'MCA' | 'MBA' | 'BCA' | 'BBA';
-  status: 'Active' | 'Discontinued' | 'completed';
+  join_date?: string;
+  end_date?: string;
+  program?: 'MCA' | 'MBA' | 'BCA' | 'BBA';
+  status?: 'Active' | 'Discontinued' | 'completed';
 }
 
 export class ApiError extends Error {
@@ -77,4 +80,18 @@ export interface CompanyInputData {
   ph_no?: string;
   avg_salary?: number;
   placed_students?: string[];
+}
+
+export interface StudentManagementState {
+  students: Student[];
+  isLoading: boolean;
+  error: string | null;
+  isAddModalOpen: boolean;
+  isEditModalOpen: boolean;
+  isDeleteModalOpen: boolean;
+  currentStudent: Student | null;
+  formData: StudentInputData;
+  editFormData: StudentInputData;
+  searchTerm: string;
+  isSubmitting: boolean; // Add this
 }

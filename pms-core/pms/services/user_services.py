@@ -157,7 +157,7 @@ class UserMgr:
                 {"email": email},
                 {"$set": {
                     "password": hashed_password,
-                    "status": "active"
+                    "status": "Active"
                 }},
                 return_document=ReturnDocument.AFTER
             )

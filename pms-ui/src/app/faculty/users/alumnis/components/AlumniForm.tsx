@@ -46,14 +46,14 @@ const AlumniForm: React.FC<AlumniFormProps> = ({
       <Input
         label="Email"
         type="email"
-        value={formData.email}
+        value={formData.email ?? ''}
         onChange={(e) => onFormChange('email', e.target.value)}
         className="mb-3"
         isRequired
       />
       <Input
         label="Phone"
-        value={formData.ph_no}
+        value={formData.ph_no ?? ''}
         onChange={(e) => onFormChange('ph_no', e.target.value)}
         className="mb-3"
       />

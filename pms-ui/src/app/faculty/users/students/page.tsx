@@ -1,11 +1,12 @@
 'use client';
 import React, { useRef, useMemo } from 'react';
 import { MdSearch, MdDeleteForever, MdEdit } from "react-icons/md";
-import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input, Select, SelectItem } from '@heroui/react';
+import { Modal, ModalContent, ModalHeader, ModalBody, Button, Input } from '@heroui/react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 import { useStudentManagement } from './components/useStudentManagement';
 import { Student } from './components/types';
+import StudentForm from './components/StudentForm';
 
 interface Params {
     data: Student;
@@ -186,131 +187,15 @@ function StudentsPage() {
                 <ModalContent>
                     <ModalHeader>Add New Student</ModalHeader>
                     <ModalBody>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <Input 
-                                autoFocus 
-                                label="First Name *" 
-                                value={formData.first_name} 
-                                onValueChange={v => handleFormChange('first_name', v)} 
-                                isRequired 
-                            />
-                            <Input 
-                                label="Middle Name" 
-                                value={formData.middle_name} 
-                                onValueChange={v => handleFormChange('middle_name', v)} 
-                            />
-                            <Input 
-                                label="Last Name" 
-                                value={formData.last_name} 
-                                onValueChange={v => handleFormChange('last_name', v)} 
-                            />
-                            <Input 
-                                label="Email *" 
-                                type="email" 
-                                value={formData.email} 
-                                onValueChange={v => handleFormChange('email', v)} 
-                                isRequired 
-                            />
-                            <Input 
-                                label="Phone Number" 
-                                value={formData.ph_no} 
-                                onValueChange={v => handleFormChange('ph_no', v)} 
-                            />
-                            <Input 
-                                label="Alternative Phone" 
-                                value={formData.alt_ph} 
-                                onValueChange={v => handleFormChange('alt_ph', v)} 
-                            />
-                            <Input 
-                                label="Alternative Email" 
-                                type="email" 
-                                value={formData.alt_email || ''} 
-                                onValueChange={v => handleFormChange('alt_email', v)} 
-                            />
-                            <Input 
-                                label="Address" 
-                                value={formData.address} 
-                                onValueChange={v => handleFormChange('address', v)} 
-                            />
-                            <Input 
-                                label="City" 
-                                value={formData.city} 
-                                onValueChange={v => handleFormChange('city', v)} 
-                            />
-                            <Input 
-                                label="District" 
-                                value={formData.district} 
-                                onValueChange={v => handleFormChange('district', v)} 
-                            />
-                            <Input 
-                                label="State" 
-                                value={formData.state} 
-                                onValueChange={v => handleFormChange('state', v)} 
-                            />
-                            <Input 
-                                label="Admission Number" 
-                                value={formData.adm_no} 
-                                onValueChange={v => handleFormChange('adm_no', v)} 
-                            />
-                            <Input 
-                                label="Registration Number" 
-                                value={formData.reg_no} 
-                                onValueChange={v => handleFormChange('reg_no', v)} 
-                            />
-                            <Select 
-                                label="Gender" 
-                                selectedKeys={[formData.gender]}
-                                onChange={e => handleFormChange('gender', e.target.value)}
-                            >
-                                <SelectItem key="Male" >Male</SelectItem>
-                                <SelectItem key="Female" >Female</SelectItem>
-                                <SelectItem key="Other" >Other</SelectItem>
-                            </Select>
-                            <Select 
-                                label="Program" 
-                                selectedKeys={[formData.program]} 
-                                onChange={e => handleFormChange('program', e.target.value)}
-                            >
-                                <SelectItem key="MCA">MCA</SelectItem>
-                                <SelectItem key="MBA">MBA</SelectItem>
-                                <SelectItem key="BCA">BCA</SelectItem>
-                                <SelectItem key="BBA">BBA</SelectItem>
-                            </Select>
-                            <Select 
-                                label="Status" 
-                                selectedKeys={[formData.status]} 
-                                onChange={e => handleFormChange('status', e.target.value)}
-                            >
-                                <SelectItem key="Active" >Active</SelectItem>
-                                <SelectItem key="Discontinued">Discontinued</SelectItem>
-                                <SelectItem key="completed" >Completed</SelectItem>
-                            </Select>
-                            <Input 
-                                label="Date of Birth" 
-                                type="date" 
-                                value={formData.dob ? new Date(formData.dob).toISOString().split('T')[0] : ''}  
-                                onChange={e => handleFormChange('dob', e.target.value)} 
-                            />
-                            <Input 
-                                label="Join Date" 
-                                type="date" 
-                                value={formData.join_date ? new Date(formData.join_date).toISOString().split('T')[0] : ''} 
-                                onChange={e => handleFormChange('join_date', e.target.value)} 
-                            />
-                            <Input 
-                                label="End Date" 
-                                type="date" 
-                                value={formData.end_date ? new Date(formData.end_date).toISOString().split('T')[0] : ''} 
-                                onChange={e => handleFormChange('end_date', e.target.value)} 
-                            />
-                        </div>
-
-                        {error && <p className="mb-2 mt-4 text-sm text-red-500">{error}</p>}
-
-                        <div className="mt-6 flex justify-end gap-2">
-                            <Button variant="light" onPress={handleCloseModals} disabled={isLoading}>Cancel</Button>
-                            <Button color="primary" onPress={submitNewStudent} isLoading={isLoading}>Submit</Button>
-                        </div>
+                        <StudentForm
+                            formData={formData}
+                            onFormChange={handleFormChange}
+                            onSubmit={submitNewStudent}
+                            onCancel={handleCloseModals}
+                            isLoading={isLoading}
+                            submitLabel="Add Student"
+                            error={error ?? undefined}
+                        />
                     </ModalBody>
                 </ModalContent>
             </Modal>
@@ -320,131 +205,15 @@ function StudentsPage() {
                 <ModalContent>
                     <ModalHeader>Edit Student: {currentStudent?.first_name}</ModalHeader>
                     <ModalBody>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <Input 
-                                autoFocus 
-                                label="First Name *" 
-                                value={editFormData.first_name} 
-                                onValueChange={v => handleEditFormChange('first_name', v)} 
-                                isRequired 
+                        <StudentForm
+                            formData={editFormData}
+                            onFormChange={handleEditFormChange}
+                            onSubmit={submitUpdatedStudent}
+                            onCancel={handleCloseModals}
+                            isLoading={isLoading}
+                            submitLabel="Update Student"
+                            error={error ?? undefined}
                             />
-                            <Input 
-                                label="Middle Name" 
-                                value={editFormData.middle_name} 
-                                onValueChange={v => handleEditFormChange('middle_name', v)} 
-                            />
-                            <Input 
-                                label="Last Name" 
-                                value={editFormData.last_name} 
-                                onValueChange={v => handleEditFormChange('last_name', v)} 
-                            />
-                            <Input 
-                                label="Email *" 
-                                type="email" 
-                                value={editFormData.email} 
-                                onValueChange={v => handleEditFormChange('email', v)} 
-                                isRequired 
-                            />
-                            <Input 
-                                label="Phone Number" 
-                                value={editFormData.ph_no} 
-                                onValueChange={v => handleEditFormChange('ph_no', v)} 
-                            />
-                            <Input 
-                                label="Alternative Phone" 
-                                value={editFormData.alt_ph} 
-                                onValueChange={v => handleEditFormChange('alt_ph', v)} 
-                            />
-                            <Input 
-                                label="Alternative Email" 
-                                type="email" 
-                                value={editFormData.alt_email || ''} 
-                                onValueChange={v => handleEditFormChange('alt_email', v)} 
-                            />
-                            <Input 
-                                label="Address" 
-                                value={editFormData.address} 
-                                onValueChange={v => handleEditFormChange('address', v)} 
-                            />
-                            <Input 
-                                label="City" 
-                                value={editFormData.city} 
-                                onValueChange={v => handleEditFormChange('city', v)} 
-                            />
-                            <Input 
-                                label="District" 
-                                value={editFormData.district} 
-                                onValueChange={v => handleEditFormChange('district', v)} 
-                            />
-                            <Input 
-                                label="State" 
-                                value={editFormData.state} 
-                                onValueChange={v => handleEditFormChange('state', v)} 
-                            />
-                            <Input 
-                                label="Admission Number" 
-                                value={editFormData.adm_no} 
-                                onValueChange={v => handleEditFormChange('adm_no', v)} 
-                            />
-                            <Input 
-                                label="Registration Number" 
-                                value={editFormData.reg_no} 
-                                onValueChange={v => handleEditFormChange('reg_no', v)} 
-                            />
-                            <Select 
-                                label="Gender" 
-                                value={editFormData.gender} 
-                                onChange={e => handleEditFormChange('gender', e.target.value)}
-                            >
-                                <SelectItem key="Male" >Male</SelectItem>
-                                <SelectItem key="Female" >Female</SelectItem>
-                                <SelectItem key="Other" >Other</SelectItem>
-                            </Select>
-                            <Select 
-                                label="Program" 
-                                selectedKeys={[editFormData.program]} 
-                                onChange={e => handleEditFormChange('program', e.target.value)}
-                            >
-                                <SelectItem key="MCA">MCA</SelectItem>
-                                <SelectItem key="MBA" >MBA</SelectItem>
-                                <SelectItem key="BCA" >BCA</SelectItem>
-                                <SelectItem key="BBA" >BBA</SelectItem>
-                            </Select>
-                            <Select 
-                                label="Status" 
-                                selectedKeys={[editFormData.status]} 
-                                onChange={e => handleEditFormChange('status', e.target.value)}
-                            >
-                                <SelectItem key="Active" >Active</SelectItem>
-                                <SelectItem key="Discontinued">Discontinued</SelectItem>
-                                <SelectItem key="completed">Completed</SelectItem>
-                            </Select>
-                            <Input 
-                                label="Date of Birth" 
-                                type="date" 
-                                value={editFormData.dob ? new Date(editFormData.dob).toISOString().split('T')[0] : ''} 
-                                onChange={e => handleEditFormChange('dob', e.target.value)} 
-                            />
-                            <Input 
-                                label="Join Date" 
-                                type="date" 
-                                value={editFormData.join_date ? new Date(editFormData.join_date).toISOString().split('T')[0] : ''} 
-                                onChange={e => handleEditFormChange('join_date', e.target.value)} 
-                            />
-                            <Input 
-                                label="End Date" 
-                                type="date" 
-                                value={editFormData.end_date ? new Date(editFormData.end_date).toISOString().split('T')[0] : ''} 
-                                onChange={e => handleEditFormChange('end_date', e.target.value)} 
-                            />
-                        </div>
-
-                        {error && <p className="mb-2 mt-4 text-sm text-red-500">{error}</p>}
-
-                        <div className="mt-6 flex justify-end gap-2">
-                            <Button variant="light" onPress={handleCloseModals} disabled={isLoading}>Cancel</Button>
-                            <Button color="primary" onPress={submitUpdatedStudent} isLoading={isLoading}>Update</Button>
-                        </div>
                     </ModalBody>
                 </ModalContent>
             </Modal>
