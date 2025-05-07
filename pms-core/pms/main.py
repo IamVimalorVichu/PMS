@@ -43,6 +43,8 @@ from pms.routes.post_routes import router as post_router
 from pms.routes.report_routes import router as report_router
 from pms.routes.admin_community_routes import router as admin_community_router
 from pms.routes.direct_message_routes import router as dm_router
+from pms.routes.analysis import router as analysis_router
+from pms.services.analysis_services import analysis_mgr
 
 
 origins = [
@@ -85,6 +87,8 @@ async def lifespan(app: FastAPI):
     await report_mgr.initialize()
     await dm_mgr.initialize()
     await scheduler_mgr.initialize()
+    await analysis_mgr.initialize()
+
     yield
     # Shutdown
     await db.close()
@@ -128,6 +132,8 @@ app.include_router(post_router, prefix="/community", tags=["Posts"])
 app.include_router(report_router, prefix="/reports", tags=["Reports"])
 app.include_router(admin_community_router, prefix="/admin/community", tags=["Admin Community Management"])
 app.include_router(dm_router, prefix="/direct-messages", tags=["Direct Messages"])
+app.include_router(analysis_router, prefix="/analysis", tags=["Analysis"])
 app.mount("/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
+
 
 
