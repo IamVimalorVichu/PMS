@@ -50,20 +50,5 @@ async def login_for_access_token(
             detail=f"An internal error occurred during login.",
         )
 
-# --- Logout Endpoint (Commented Out - Recommended Removal for Stateless JWT) ---
-# @router.post("/logout")
-# async def logout():
-#     """
-#     Placeholder for logout. Note: Stateless JWT logout is typically handled
-#     client-side by discarding the token. Server-side requires a blocklist.
-#     """
-#     # If you implement a blocklist:
-#     # try:
-#     #     # Example: Get token from header, add to blocklist via a service
-#     #     # token = Depends(oauth2_scheme)
-#     #     # await auth_service.add_token_to_blocklist(token)
-#     #     return {"message": "Logout successful (token invalidated if blocklist used)"}
-#     # except Exception as e:
-#     #     logger.error(f"Error during logout: {e}", exc_info=True)
-#     #     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Logout error.")
-#     return {"message": "Logout endpoint hit. Client should discard token."}
+
+'''change password'''

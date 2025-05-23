@@ -71,6 +71,7 @@ async def delete_user(user_id: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting user: {str(e)}"
         )
+
 @router.get("/search/{user_id}", response_model=List[UserBasicInfo])
 async def search_for_users(
     user_id: str, # Current user ID passed in path
