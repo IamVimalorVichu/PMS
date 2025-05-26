@@ -1,15 +1,21 @@
 from urllib import response
-from fastapi import FastAPI, HTTPException, status, APIRouter
+from fastapi import Depends, FastAPI, HTTPException, status, APIRouter
 from fastapi.params import Query
 from pms.models.user import User, UserBasicInfo, UserUpdate
-from pms.services.user_services import user_mgr
+from pms.services.user_services import UserMgr, user_mgr
 from pymongo import ReturnDocument
 from typing import List, Optional
 from bson import ObjectId
 from pydantic import BaseModel
+from pms.db.database import DatabaseConnection, get_db
 
 
 router = APIRouter()
+
+async def get_user_mgr(db: DatabaseConnection = Depends(get_db)) -> UserMgr:
+    await db.connect()
+    return UserMgr(db)
+
 
 # Add this class for request validation
 class PasswordResetRequest(BaseModel):

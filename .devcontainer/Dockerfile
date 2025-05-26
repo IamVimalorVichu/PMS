@@ -5,7 +5,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install python3 python3-pip python3-venv \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Set up Python environment using pip3
+# Set up Python environment using pip3`
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 

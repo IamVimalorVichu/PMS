@@ -1,5 +1,6 @@
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.asynchronous.collection import AsyncCollection
 from pms.core.config import config
 import asyncio
 
@@ -15,81 +16,68 @@ class DatabaseConnection:
 
     def __init__(self, max_retries=5, retry_delay=2):
         if not hasattr(self, 'client'):
-            self.database_name = config.DATABASE_NAME
-            self.database_url = config.DATABASE_URL
+            self.database_name = config.MONGO_DATABASE_NAME
+            self.database_url = config.MONOG_URL
             self.client = None
             self.db = None
             self.max_retries = max_retries 
             self.retry_delay = retry_delay
 
     async def connect(self):
+        if self._connected:
+            return
+        
+        if not self.database_url:
+            if not self.mongo_password and not self.mongo_port and not self.mongo_username:
+                app_logger.error(
+                    f'Database URL or credentials not set. Check your configuration.')
+                raise ValueError(
+                    "Database URL or credentials not set. Check your configuration.")
+            else:
+                self.database_url = f"mongodb://{self.mongo_username}:{self.mongo_password}@localhost:{self.mongo_port}"
+
         retries = 0
         while retries < self.max_retries:
             try:
-                if not self.database_url:
-                    raise ValueError("Database URL not set")
-                if not self.database_name:
-                    raise ValueError("Database name not set")
+                if not self.client:
+                    self.client= AsyncMongoClient(self.database_url)
+                    self.db = self.client.get_database(self.database_name)
+                    await self.db.command("ping")
+                    app_logger.info(
+                        f'Connected to MongoDB at {self.database_url} | using database {self.database_name}')
+                    self._connected = True
+                    return
 
-                self.client = AsyncIOMotorClient(self.database_url)
-                self.db = self.client[self.database_name]
-                
-                await self.db.command("ping")
-                print(f"Connected to MongoDB at {self.database_url} | using database {self.database_name}")
-                break   
-            
             except (ValueError, Exception) as e:
                 retries += 1
                 print(f"Attempt {retries} failed: {e}")
 
                 if retries >= self.max_retries:
-                    raise Exception(f"Failed to connect to MongoDB after {self.max_retries} attempts.")
+                    raise Exception(
+                        f"Failed to connect to MongoDB after {self.max_retries} attempts.")
 
-                delay = self.retry_delay * (2 ** (retries - 1))  
+                delay = self.retry_delay * (2 ** (retries - 1))
                 print(f"Retrying in {delay} seconds...")
                 await asyncio.sleep(delay)
 
     async def close(self):
         if self.client:
-            self.client.close()
+            await self.client.close()
+            self.client = None
+            self.db = None
+            self._connected = False
+            app_logger.info(f'Connection to {self.database_name} closed.')
             print(f"Connection to {self.database_name} closed.")
         else:
             print("No connection to close.")
 
-    async def get_collection(self, collection_name: str):
-        """Get this collection from the database."""
+    def get_collection_reference(self, collection_name: str) -> AsyncCollection:
         if self.db is None:
+            app_logger.error(
+                f'Database is not connected for getting Collection info')
             raise Exception("Database is not connected!")
-        return self.db[collection_name]
-    async def get_database(self):
-        """Get the database instance."""
-        if self.db is None:
-            raise Exception("Database is not connected!")
-        return self.db
-
-    
+        return self.db.get_collection(collection_name)
 
 
-
-# from motor.motor_asyncio import AsyncIOMotorClient
-
-# # MongoDB Connection String
-# MONGO_URI = "mongodb://localhost:27017"  # Update if needed
-# DB_NAME = "PMS"  # Change database name if required
-
-# # Initialize MongoDB Client
-# client = AsyncIOMotorClient(MONGO_URI)
-# db = client[DB_NAME]
-
-# # Collections
-# users_collection = db["users"]
-# student_collection = db["students"]
-# company_collection = db["companies"]
-# drive_collection = db["drives"]
-# job_collection = db["jobs"]
-# req_collection = db["requirements"]
-# drive_company_collection = db["company-drives"]
-
-
-
-
+def get_db():
+    return DatabaseConnection()
