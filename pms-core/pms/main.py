@@ -2,14 +2,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
 from pms.db.database import DatabaseConnection
-from pms.services.student_services import student_mgr
 from pms.services.company_services import company_mgr
 from pms.services.drive_services import drive_mgr
 from pms.services.job_services import job_mgr
 from pms.services.drivecompany_services import drive_company_mgr
-from pms.services.user_services import user_mgr
 from pms.services.student_performance_services import student_performance_mgr
-from pms.services.faculty_services import faculty_mgr
 from pms.routes.user import router as userRouter
 from pms.routes.student import router as studentRouter
 from pms.routes.company import router as companyRouter
@@ -68,14 +65,11 @@ db = DatabaseConnection()
 async def lifespan(app: FastAPI):
     # Startup
     await db.connect()
-    await user_mgr.initialize()
-    await student_mgr.initialize()
     await company_mgr.initialize()
     await drive_mgr.initialize()
     await job_mgr.initialize()
     await drive_company_mgr.initialize()
     await student_performance_mgr.initialize()
-    await faculty_mgr.initialize()
     await requirement_mgr.initialize()
     await jobapplication_mgr.initialize()
     await resume_mgr.initialize()

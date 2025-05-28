@@ -8,10 +8,11 @@ from pms.models.auth import UserLogin
 from pms.db.database import DatabaseConnection
 from pms.core.config import config
 from pms.services.auth_services import create_access_token
-from pms.utils.utilities import UtilMgr, util_mgr
+from pms.utils.utilities import UtilMgr
 from bson import ObjectId, errors as bson_errors
 from fastapi import BackgroundTasks, HTTPException, logger, status
 from pms.services.scheduler_services import scheduler_mgr
+
 
 class UserMgr:
 
@@ -19,7 +20,7 @@ class UserMgr:
         self.db = db
         self.user_collection = self.db.get_collection_reference("users")
         self._util_mgr = None
-    
+     
     @property
     def util_mgr(self):
         if self._util_mgr is None:
@@ -449,5 +450,3 @@ class UserMgr:
             print(f"Error applying restrictions for user {target_user_id}: {e}")
             raise Exception(f"Error applying restrictions: {str(e)}")
 
-
-user_mgr = UserMgr()

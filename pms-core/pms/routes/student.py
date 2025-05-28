@@ -1,11 +1,15 @@
-from fastapi import Body, FastAPI, HTTPException, status, APIRouter, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Request, status, APIRouter
 from pms.models.student import Student, StudentUpdate
 from pms.models.drive import Drive
-from pms.services.student_services import student_mgr
+from pms.services.student_services import StudentMgr
+from pms.db.database import DatabaseConnection, get_db
 from pms.utils.form_prefill import prefill_mgr
 from typing import List
 
 router = APIRouter()
+
+async def get_student_mgr(db: DatabaseConnection = Depends(get_db)) -> StudentMgr:
+    return StudentMgr(db)
 
 @router.post("/add")
 async def add_student(student: Student):
@@ -19,14 +23,14 @@ async def add_student(student: Student):
         )
     
 @router.get("/get", response_model=List[Student])
-async def get_students():
+async def get_students(student_mgr: StudentMgr = Depends(get_student_mgr)):
     try:
         students = await student_mgr.get_students()
         return students
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error fetching data: {str(e)}"
+            detail=f"Error fetching students: {str(e)}"
         )
     
 @router.get("/get/{student_id}", response_model=Student)

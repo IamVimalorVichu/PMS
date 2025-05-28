@@ -4,18 +4,22 @@ from pms.models.student import Student, StudentUpdate
 from datetime import datetime
 from pymongo import ReturnDocument
 from bson import ObjectId
-from pms.services.user_services import user_mgr
+from pms.services.user_services import UserMgr
 from pms.models.user import User, UserUpdate
 from pms.utils.utilities import UtilMgr
 
 class StudentMgr:
-    def __init__(self):
-        self.db = None
-        self.students_collection = None
-        
-    async def initialize(self):
-        self.db = DatabaseConnection()
-        self.students_collection = await self.db.get_collection("students")
+    def __init__(self, db: DatabaseConnection):
+        self.db = db
+        self.students_collection = self.db.get_collection_reference("students")
+        self._user_mgr = None
+        self._faculty_mgr = None
+
+    @property
+    def user_mgr(self):
+        if self._user_mgr is None:
+            self._user_mgr = UserMgr(self.db)
+        return self._user_mgr
 
     async def get_students(self):
         try:
@@ -24,56 +28,44 @@ class StudentMgr:
                 student["_id"] = str(student["_id"])
             return students
         except Exception as e:
-            raise Exception(f"Error fetching data: {str(e)}")
+            raise Exception(f"Error fetching students: {str(e)}")
         
     async def add_student(self, student: Student):
         try:
             # First check if student with this email already exists
             existing_student = await self.students_collection.find_one({"email": student.email})
             if existing_student:
-                raise Exception("A student with this email already exists")
+                raise Exception("Student with this email already exists")
 
-            # First create the user
-            if student.gender not in ["Male","Female","Other"]:
-                student.gender = None
-
-            # Create user data dict with only required fields
+            # Create user first
             user_data = {
                 "first_name": student.first_name,
                 "email": student.email,
                 "role": "student",
                 "status": "Inactive"
             }
-
-            # Add optional fields only if they have values
-            if student.middle_name is not None:
+            # Add optional fields
+            if student.middle_name:
                 user_data["middle_name"] = student.middle_name
-            if student.last_name is not None:
+            if student.last_name:
                 user_data["last_name"] = student.last_name
-            if student.ph_no is not None and student.ph_no.strip():  
+            if student.ph_no and student.ph_no.strip():
                 user_data["ph_no"] = student.ph_no
-            if student.gender is not None:
+            if student.gender:
                 user_data["gender"] = student.gender
 
-            # Create User object with filtered data
+            # Create user through user_mgr
             user = User(**user_data)
+            user_result = await self.user_mgr.add_user(user)
             
-            try:
-                # Add user first
-                user_response = await user_mgr.add_user(user)
-                user_id = user_response["id"]
-
-                return {
-                    "status": "success",
-                    "message": "User created successfully",
-                    "user_id": user_id
-                }
-                
-            except Exception as inner_e:
-                # If student creation fails, rollback user creation
-                if 'user_id' in locals():
-                    await user_mgr.delete_user(user_id)
-                raise inner_e
+            # Now create student record
+            student_data = student.model_dump()
+            student_data["user_id"] = user_result["id"]
+            student_data["created_at"] = datetime.now()
+            student_data["updated_at"] = datetime.now()
+            
+            result = await self.students_collection.insert_one(student_data)
+            return {"status": "success", "id": str(result.inserted_id)}
 
         except Exception as e:
             raise Exception(f"Error adding student: {str(e)}")
@@ -113,7 +105,7 @@ class StudentMgr:
                 ph_no=student.ph_no,
                 gender=student.gender
             )
-            await user_mgr.update_user(existing_student["user_id"], user_data)
+            await UserMgr.update_user(existing_student["user_id"], user_data)
 
             # Update student
             updated_data = student.model_dump(exclude_unset=True)
@@ -154,7 +146,7 @@ class StudentMgr:
                 raise Exception("Failed to delete student")
 
             # Then delete user
-            await user_mgr.delete_user(student["user_id"])
+            await UserMgr.delete_user(student["user_id"])
             
             return {"status": "success", "message": "Student and associated user deleted"}
         except Exception as e:
@@ -258,4 +250,3 @@ class StudentMgr:
         except Exception as e:
             raise Exception(f"Error deleting student record: {str(e)}")
 
-student_mgr = StudentMgr()

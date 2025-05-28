@@ -1,6 +1,6 @@
 from typing import Optional
-from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.asynchronous.collection import AsyncCollection
+from pymongo import AsyncMongoClient
 from pms.core.config import config
 import asyncio
 
@@ -29,8 +29,6 @@ class DatabaseConnection:
         
         if not self.database_url:
             if not self.mongo_password and not self.mongo_port and not self.mongo_username:
-                app_logger.error(
-                    f'Database URL or credentials not set. Check your configuration.')
                 raise ValueError(
                     "Database URL or credentials not set. Check your configuration.")
             else:
@@ -43,8 +41,6 @@ class DatabaseConnection:
                     self.client= AsyncMongoClient(self.database_url)
                     self.db = self.client.get_database(self.database_name)
                     await self.db.command("ping")
-                    app_logger.info(
-                        f'Connected to MongoDB at {self.database_url} | using database {self.database_name}')
                     self._connected = True
                     return
 
@@ -66,15 +62,12 @@ class DatabaseConnection:
             self.client = None
             self.db = None
             self._connected = False
-            app_logger.info(f'Connection to {self.database_name} closed.')
             print(f"Connection to {self.database_name} closed.")
         else:
             print("No connection to close.")
 
     def get_collection_reference(self, collection_name: str) -> AsyncCollection:
         if self.db is None:
-            app_logger.error(
-                f'Database is not connected for getting Collection info')
             raise Exception("Database is not connected!")
         return self.db.get_collection(collection_name)
 

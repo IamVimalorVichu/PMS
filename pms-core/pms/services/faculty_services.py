@@ -1,19 +1,22 @@
 from pms.db.database import DatabaseConnection
 from pms.models.faculty import Faculty, FacultyUpdate
+from pms.models.user import User, UserUpdate
 from datetime import datetime
 from pymongo import ReturnDocument
 from bson import ObjectId
-from pms.services.user_services import user_mgr
-from pms.models.user import User, UserUpdate
+from pms.services.user_services import UserMgr
 
 class FacultyMgr:
-    def __init__(self):
-        self.db = None
-        self.faculty_collection = None
-        
-    async def initialize(self):
-        self.db = DatabaseConnection()
-        self.faculty_collection = await self.db.get_collection("faculties")
+    def __init__(self, db: DatabaseConnection):
+        self.db = db
+        self.faculty_collection = self.db.get_collection_reference("faculties")
+        self._user_mgr = None
+
+    @property
+    def user_mgr(self):
+        if self._user_mgr is None:
+            self._user_mgr = UserMgr(self.db)
+        return self._user_mgr
 
     async def get_faculties(self):
         try:
@@ -22,7 +25,7 @@ class FacultyMgr:
                 faculty["_id"] = str(faculty["_id"])
             return faculties
         except Exception as e:
-            raise Exception(f"Error fetching data: {str(e)}")
+            raise Exception(f"Error fetching faculties: {str(e)}")
         
     async def add_faculty(self, faculty: Faculty):
         try:
@@ -39,7 +42,7 @@ class FacultyMgr:
             )
             
             # Add user first
-            user_response = await user_mgr.add_user(user)
+            user_response = await UserMgr.add_user(user)
             user_id = user_response["id"]
             
             # Add user_id to faculty data
@@ -59,7 +62,7 @@ class FacultyMgr:
             }
         except Exception as e:
             if 'user_id' in locals():
-                await user_mgr.delete_user(user_id)
+                await UserMgr.delete_user(user_id)
             raise Exception(f"Error adding faculty: {str(e)}")
     
     async def get_faculty(self, faculty_id: str):
@@ -97,7 +100,7 @@ class FacultyMgr:
                 ph_no=faculty.ph_no,
                 gender=faculty.gender
             )
-            await user_mgr.update_user(existing_faculty["user_id"], user_data)
+            await UserMgr.update_user(existing_faculty["user_id"], user_data)
 
             # Update faculty
             updated_data = faculty.model_dump(exclude_none=True)
@@ -130,7 +133,7 @@ class FacultyMgr:
                 raise Exception("Failed to delete faculty")
 
             # Then delete user
-            await user_mgr.delete_user(faculty["user_id"])
+            await UserMgr.delete_user(faculty["user_id"])
             
             return {"status": "success", "message": "Faculty and associated user deleted"}
         except Exception as e:
@@ -187,4 +190,3 @@ class FacultyMgr:
         except Exception as e:
             raise Exception(f"Error deleting faculty record: {str(e)}")
 
-faculty_mgr = FacultyMgr()

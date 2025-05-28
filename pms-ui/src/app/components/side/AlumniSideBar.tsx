@@ -38,11 +38,6 @@ import {
               </div>
             </Link>
           </NavbarItem>
-          
-          
-          
-          
-  
           <NavbarItem className="w-full">
             <Link href="/community">
                           <div className="flex items-center gap-2 text-white text-lg hover:text-black">

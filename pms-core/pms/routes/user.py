@@ -2,7 +2,7 @@ from urllib import response
 from fastapi import Depends, FastAPI, HTTPException, status, APIRouter
 from fastapi.params import Query
 from pms.models.user import User, UserBasicInfo, UserUpdate
-from pms.services.user_services import UserMgr, user_mgr
+from pms.services.user_services import UserMgr
 from pymongo import ReturnDocument
 from typing import List, Optional
 from bson import ObjectId
@@ -13,6 +13,7 @@ from pms.db.database import DatabaseConnection, get_db
 router = APIRouter()
 
 async def get_user_mgr(db: DatabaseConnection = Depends(get_db)) -> UserMgr:
+    #db = DatabaseConnection()
     await db.connect()
     return UserMgr(db)
 
@@ -24,7 +25,7 @@ class PasswordResetRequest(BaseModel):
 
 
 @router.get("/get", response_model=List[User])
-async def get_users():
+async def get_users(user_mgr: UserMgr = Depends(get_user_mgr)):
     try:
         users = await user_mgr.get_users()
         return users
@@ -33,9 +34,8 @@ async def get_users():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching data: {str(e)}"
         )
-
 @router.post("/add")
-async def add_user(user: User):
+async def add_user(user: User, user_mgr: UserMgr = Depends(get_user_mgr)):
     try:
         user = await user_mgr.add_user(user)
         return user
@@ -46,7 +46,7 @@ async def add_user(user: User):
         )
     
 @router.get("/get/{user_id}", response_model=User)
-async def get_user(user_id: str):
+async def get_user(user_id: str, user_mgr: UserMgr = Depends(get_user_mgr)):
     try:
         user = await user_mgr.get_user(user_id)
         return user
@@ -57,7 +57,7 @@ async def get_user(user_id: str):
         )
 
 @router.patch("/update/{user_id}")
-async def update_user(user_id: str, user: UserUpdate):
+async def update_user(user_id: str, user: UserUpdate, user_mgr: UserMgr = Depends(get_user_mgr)):
     try:
         user = await user_mgr.update_user(user_id, user)
         return user
@@ -68,7 +68,7 @@ async def update_user(user_id: str, user: UserUpdate):
         )
     
 @router.delete("/delete/{user_id}")
-async def delete_user(user_id: str):
+async def delete_user(user_id: str, user_mgr: UserMgr = Depends(get_user_mgr)):
     try:
         user = await user_mgr.delete_user(user_id)
         return user
@@ -82,7 +82,8 @@ async def delete_user(user_id: str):
 async def search_for_users(
     user_id: str, # Current user ID passed in path
     q: Optional[str] = Query(None, min_length=2, max_length=50), # Search query param
-    limit: int = Query(default=10, le=25) # Limit results
+    limit: int = Query(default=10, le=25), # Limit results
+    user_mgr: UserMgr = Depends(get_user_mgr)
 ):
     """
     Searches for active users by name, username, or email, excluding the current user.
@@ -104,7 +105,7 @@ async def search_for_users(
         )
     
 @router.patch("/reset-password")
-async def reset_password(reset_data: PasswordResetRequest):
+async def reset_password(reset_data: PasswordResetRequest, user_mgr: UserMgr = Depends(get_user_mgr)):
     try:
         print(f"Resetting password for {reset_data.email}")
         print(f"New password: {reset_data.password}")
